@@ -8,7 +8,7 @@ GET /api/report/{session_id}/export       — Export as markdown/json/html
 from fastapi import APIRouter, Query
 from fastapi.responses import PlainTextResponse
 
-from app.core.dependencies import ResearchPipelineDep
+from app.core.dependencies import ReportGeneratorDep
 from app.schemas.report import StructuredReport
 
 router = APIRouter()
@@ -21,7 +21,7 @@ router = APIRouter()
 )
 async def get_report(
     session_id: str,
-    pipeline: ResearchPipelineDep,
+    report_generator: ReportGeneratorDep,
 ) -> StructuredReport:
     """
     Retrieve the final structured research report for a completed session.
@@ -33,19 +33,7 @@ async def get_report(
     - Confidence score and quality metrics
     - Research methodology
     """
-    # NOTE: When report generation is implemented, inject IReportGenerator
-    # and call report_generator.get_report(session_id)
-    # For now, return a placeholder response.
-    return StructuredReport(
-        report_id=f"report-{session_id}",
-        session_id=session_id,
-        question="Placeholder — report not yet generated.",
-        executive_summary=(
-            "This is a placeholder report. "
-            "The Report Generator module has not yet been implemented."
-        ),
-        overall_confidence=0.0,
-    )
+    return await report_generator.get_report(session_id)
 
 
 @router.get(
@@ -55,6 +43,7 @@ async def get_report(
 )
 async def export_report(
     session_id: str,
+    report_generator: ReportGeneratorDep,
     format: str = Query(default="markdown", pattern="^(markdown|json|html)$"),
 ) -> str:
     """
@@ -62,5 +51,4 @@ async def export_report(
 
     Supported formats: markdown, json, html
     """
-    # NOTE: Implement using IReportGenerator.export_report() when available.
-    return f"# Report Export\n\nPlaceholder export in {format} format for session {session_id}."
+    return await report_generator.export_report(session_id, format)

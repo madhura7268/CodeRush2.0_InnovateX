@@ -285,6 +285,6 @@ class ResearchResult(BaseModel):
     status: SessionStatus
     findings: list[ResearchFinding]
     total_iterations: int
-    overall_confidence: float = Field(ge=0.0, le=1.0)
+    overall_confidence: float = Field(ge=0.0, le=100.0)
     report_id: str | None = None
     completed_at: datetime | None = None

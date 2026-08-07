@@ -16,6 +16,7 @@ Adding a new configuration value:
 """
 
 from functools import lru_cache
+from typing import Any
 
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -47,7 +48,7 @@ class Settings(BaseSettings):
     BACKEND_HOST: str = "0.0.0.0"
     BACKEND_PORT: int = 8000
     SECRET_KEY: str = "dev-secret-key-change-in-production"
-    ALLOWED_ORIGINS: list[str] = ["http://localhost:5173", "http://localhost:3000"]
+    ALLOWED_ORIGINS: Any = ["http://localhost:5173", "http://localhost:3000"]
 
     # --- PostgreSQL ---
     POSTGRES_HOST: str = "localhost"
@@ -93,9 +94,18 @@ class Settings(BaseSettings):
     @field_validator("ALLOWED_ORIGINS", mode="before")
     @classmethod
     def parse_allowed_origins(cls, v):
-        """Allow ALLOWED_ORIGINS to be a comma-separated string in .env."""
+        """Allow ALLOWED_ORIGINS to be a comma-separated string or a JSON array in .env."""
         if isinstance(v, str):
-            return [origin.strip() for origin in v.split(",")]
+            v = v.strip()
+            if v.startswith("[") and v.endswith("]"):
+                try:
+                    import json
+                    parsed = json.loads(v)
+                    if isinstance(parsed, list):
+                        return [str(item).strip() for item in parsed]
+                except Exception:
+                    pass
+            return [origin.strip() for origin in v.split(",") if origin.strip()]
         return v
 
     @property

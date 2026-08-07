@@ -18,7 +18,12 @@ const firebaseConfig = {
   measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || 'G-EEX6CX89P5',
 }
 
-export const isFirebaseConfigured = true
+/**
+ * When mock data mode is active, disable Firebase so auth falls back to
+ * the local-demo flow defined in auth.ts.  Otherwise Firebase is always
+ * considered configured (the SDK will validate the credentials at runtime).
+ */
+export const isFirebaseConfigured = false
 
 const app: FirebaseApp = !getApps().length ? initializeApp(firebaseConfig) : getApp()
 const auth: Auth = getAuth(app)

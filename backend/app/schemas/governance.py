@@ -73,3 +73,17 @@ class AuditLogEntry(BaseModel):
     matched_policies: list[str]
     reason: str
     timestamp: datetime = Field(default_factory=datetime.utcnow)
+
+
+class GovernancePermissionStatus(str, Enum):
+    ALLOWED = "ALLOWED"
+    BLOCKED = "BLOCKED"
+    HUMAN_APPROVAL = "HUMAN APPROVAL"
+
+
+class GovernancePermission(BaseModel):
+    action: str
+    label: str
+    status: GovernancePermissionStatus
+    description: str
+

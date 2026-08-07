@@ -88,12 +88,16 @@ export default function Register() {
                 Full Name
               </label>
               <input
+                id="register-name"
+                name="register-name"
                 type="text"
+                autoComplete="off"
                 required
                 value={name}
                 onChange={(e) => setName(e.target.value)}
+                onFocus={(e) => e.target.select()}
                 placeholder="Dr. Alex Rivera"
-                className="w-full px-4 py-2.5 rounded-xl text-xs bg-white border border-slate-300 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-500/15"
+                className="w-full px-4 py-2.5 rounded-xl text-sm bg-white border border-slate-300 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-500/15"
               />
             </div>
 
@@ -103,12 +107,16 @@ export default function Register() {
                 Email Address
               </label>
               <input
+                id="register-email"
+                name="register-email"
                 type="email"
+                autoComplete="off"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                onFocus={(e) => e.target.select()}
                 placeholder="alex@research-inst.org"
-                className="w-full px-4 py-2.5 rounded-xl text-xs bg-white border border-slate-300 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-500/15"
+                className="w-full px-4 py-2.5 rounded-xl text-sm bg-white border border-slate-300 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-500/15"
               />
             </div>
 
@@ -118,12 +126,16 @@ export default function Register() {
                 Password
               </label>
               <input
+                id="register-password"
+                name="register-password"
                 type="password"
+                autoComplete="new-password"
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                onFocus={(e) => e.target.select()}
                 placeholder="At least 6 characters"
-                className="w-full px-4 py-2.5 rounded-xl text-xs bg-white border border-slate-300 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-500/15"
+                className="w-full px-4 py-2.5 rounded-xl text-sm bg-white border border-slate-300 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-500/15"
               />
             </div>
 
@@ -133,12 +145,16 @@ export default function Register() {
                 Confirm Password
               </label>
               <input
+                id="register-confirm-password"
+                name="register-confirm-password"
                 type="password"
+                autoComplete="new-password"
                 required
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
+                onFocus={(e) => e.target.select()}
                 placeholder="Re-enter password"
-                className="w-full px-4 py-2.5 rounded-xl text-xs bg-white border border-slate-300 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-500/15"
+                className="w-full px-4 py-2.5 rounded-xl text-sm bg-white border border-slate-300 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-500/15"
               />
             </div>
 

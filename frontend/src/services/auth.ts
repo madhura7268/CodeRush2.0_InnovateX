@@ -136,7 +136,7 @@ export function subscribeToAuthState(callback: (user: UserProfile | null) => voi
     return () => window.removeEventListener('storage', checkDemoUser)
   }
 
-  return onAuthStateChanged(auth, (firebaseUser) => {
+  return onAuthStateChanged(auth, (firebaseUser: FirebaseUser | null) => {
     callback(firebaseUser ? formatUserProfile(firebaseUser) : null)
   })
 }

@@ -97,12 +97,16 @@ export default function Login() {
                 Email Address
               </label>
               <input
+                id="login-email"
+                name="login-email"
                 type="email"
+                autoComplete="off"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                onFocus={(e) => e.target.select()}
                 placeholder="name@example.com"
-                className="w-full px-4 py-2.5 rounded-xl text-xs bg-white border border-slate-300 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-500/15"
+                className="w-full px-4 py-2.5 rounded-xl text-sm bg-white border border-slate-300 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-500/15"
               />
             </div>
 
@@ -124,12 +128,16 @@ export default function Login() {
                 </button>
               </div>
               <input
+                id="login-password"
+                name="login-password"
                 type="password"
+                autoComplete="off"
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                onFocus={(e) => e.target.select()}
                 placeholder="••••••••"
-                className="w-full px-4 py-2.5 rounded-xl text-xs bg-white border border-slate-300 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-500/15"
+                className="w-full px-4 py-2.5 rounded-xl text-sm bg-white border border-slate-300 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-500/15"
               />
             </div>
 

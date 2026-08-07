@@ -18,6 +18,8 @@ How to add a new module:
     4. Use Annotated[IModule, Depends(get_module)] in your router
 """
 
+from __future__ import annotations
+
 from functools import lru_cache
 from typing import Annotated
 
@@ -34,10 +36,12 @@ from app.interfaces.memory import IMemory
 from app.interfaces.orchestrator import IAgentOrchestrator
 from app.interfaces.planner import IPlanner
 from app.interfaces.research import IResearchPipeline
+from app.interfaces.report import IReportGenerator
 from app.memory.memory import MemoryService
 from app.orchestrator.orchestrator import AgentOrchestrator
 from app.planner.planner import ResearchPlanner
 from app.research.pipeline import ResearchPipeline
+from app.research.report_generator import ReportGenerator
 from app.research.services.research_pipeline_service import ResearchPipelineService
 from app.websocket.manager import WebSocketManager
 
@@ -66,9 +70,25 @@ WebSocketManagerDep = Annotated[WebSocketManager, Depends(get_websocket_manager)
 # ---------------------------------------------------------------------------
 def get_research_pipeline(
     settings: SettingsDep,
+    planner: PlannerDep,
+    orchestrator: OrchestratorDep,
+    evaluation: EvaluationDep,
+    governance: GovernanceEngineDep,
+    memory: MemoryDep,
+    report_generator: "ReportGeneratorDep",
+    ws_manager: WebSocketManagerDep,
 ) -> IResearchPipeline:
     """Provides the ResearchPipeline implementation."""
-    return ResearchPipeline(settings=settings)
+    return ResearchPipeline(
+        settings=settings,
+        planner=planner,
+        orchestrator=orchestrator,
+        evaluation=evaluation,
+        governance=governance,
+        memory=memory,
+        report_generator=report_generator,
+        ws_manager=ws_manager,
+    )
 
 
 ResearchPipelineDep = Annotated[IResearchPipeline, Depends(get_research_pipeline)]
@@ -161,3 +181,16 @@ def get_evaluation(settings: SettingsDep) -> IEvaluation:
 
 
 EvaluationDep = Annotated[IEvaluation, Depends(get_evaluation)]
+
+
+# ---------------------------------------------------------------------------
+# Module: Report Generator
+# Interface: IReportGenerator
+# Implementation: ReportGenerator
+# ---------------------------------------------------------------------------
+def get_report_generator(memory: MemoryDep) -> IReportGenerator:
+    """Provides the ReportGenerator implementation."""
+    return ReportGenerator(memory=memory)
+
+
+ReportGeneratorDep = Annotated[IReportGenerator, Depends(get_report_generator)]

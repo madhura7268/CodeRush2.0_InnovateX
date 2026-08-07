@@ -67,7 +67,7 @@ class StructuredReport(BaseModel):
     # Quality metrics
     overall_confidence: float = Field(
         ge=0.0,
-        le=1.0,
+        le=100.0,
         description="Overall confidence score from the Evaluation module.",
     )
     quality_metrics: dict[str, float] = Field(

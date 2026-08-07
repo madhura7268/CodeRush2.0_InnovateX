@@ -27,6 +27,7 @@ jobs:
         with:
           python-version: '3.11'
           cache: 'pip'
+          cache-dependency-path: 'backend/requirements.txt'
 
       - name: Install dependencies
         run: pip install -r requirements.txt
@@ -39,7 +40,7 @@ jobs:
         continue-on-error: true  # Remove once type annotations are complete
 
       - name: Run tests with pytest
-        run: pytest ../tests/ -v --tb=short
+        run: PYTHONPATH=. pytest ../tests/ -v --tb=short
 
   # --------------------------------------------------------------------------
   # Frontend: Type Check, Build
@@ -85,6 +86,9 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Create .env from .env.example
+        run: cp .env.example .env
 
       - name: Validate docker-compose.yml
         run: docker compose config --quiet

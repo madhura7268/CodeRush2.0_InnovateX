@@ -23,7 +23,7 @@ class EvaluationResult(BaseModel):
     evaluation_id: str
     session_id: str
     iteration: int
-    overall_confidence: float = Field(ge=0.0, le=1.0)
+    overall_confidence: float = Field(ge=0.0, le=100.0)
     dimension_scores: list[DimensionScore] = Field(default_factory=list)
     should_continue: bool = Field(
         ...,
@@ -40,7 +40,22 @@ class IterationEvaluation(BaseModel):
     """Summary of evaluation for a single iteration, used in history views."""
 
     iteration: int
-    overall_confidence: float = Field(ge=0.0, le=1.0)
+    overall_confidence: float = Field(ge=0.0, le=100.0)
     dimension_scores: dict[str, float] = Field(default_factory=dict)
     should_continue: bool
     evaluated_at: datetime
+
+
+class SelfImprovementIteration(BaseModel):
+    """Self-improvement iteration metrics for evolution UI."""
+
+    iteration: int
+    confidence: float
+    problems_detected: list[str]
+    action_taken: str
+    previous_strategy: str
+    strategy_change: str
+    new_strategy: str
+    result_summary: str
+    status: str
+

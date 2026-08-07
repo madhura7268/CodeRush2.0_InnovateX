@@ -82,7 +82,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator:
     # from app.orchestrator.client import init_llm
     # await init_llm()
 
-    logger.info("All services initialized. Application is ready.")
+    logger.info("All services initialized. Application is ready.", allowed_origins=settings.ALLOWED_ORIGINS)
 
     yield
 

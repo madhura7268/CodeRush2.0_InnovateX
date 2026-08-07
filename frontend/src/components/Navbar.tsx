@@ -1,60 +1,129 @@
 /**
- * Navbar — Top navigation bar component.
+ * Navbar — Top Navigation Header & System Status Indicators
+ *
+ * Color Palette: White + Royal Blue (#2563EB)
+ * - Left: Active Session Status & Loop Iteration Counter
+ * - Right: System API & WebSocket Connectivity Badges
  */
 
-import { Bell, Zap } from 'lucide-react'
+import { Shield, Zap, AlertTriangle, RefreshCw } from 'lucide-react'
 import { useAgent } from '@/contexts/AgentContext'
-import { useEffect } from 'react'
 import { api } from '@/services/api'
+import { useEffect } from 'react'
 
 export default function Navbar() {
   const { state, dispatch } = useAgent()
-  const { apiHealthy, activeSessionId } = state
 
-  // Check API health on mount
+  const {
+    systemStatus,
+    activeSession,
+    apiHealthy,
+    wsConnected,
+    pendingApproval,
+  } = state
+
   useEffect(() => {
-    api.health.check()
-      .then(() => dispatch({ type: 'SET_API_HEALTH', payload: true }))
-      .catch(() => dispatch({ type: 'SET_API_HEALTH', payload: false }))
+    const checkHealth = () => {
+      api.health
+        .check()
+        .then(() => dispatch({ type: 'SET_API_HEALTH', payload: true }))
+        .catch(() => dispatch({ type: 'SET_API_HEALTH', payload: false }))
+    }
+    checkHealth()
+    const interval = setInterval(checkHealth, 20_000)
+    return () => clearInterval(interval)
   }, [dispatch])
 
+  const getStatusStyle = (status: string) => {
+    switch (status) {
+      case 'Researching':
+        return 'bg-blue-50 text-blue-600 border-blue-200'
+      case 'Completed':
+        return 'bg-emerald-50 text-emerald-600 border-emerald-200'
+      case 'Paused':
+        return 'bg-amber-50 text-amber-700 border-amber-200'
+      case 'Error':
+        return 'bg-red-50 text-red-600 border-red-200'
+      default:
+        return 'bg-emerald-50 text-emerald-600 border-emerald-200'
+    }
+  }
+
   return (
-    <header className="flex items-center justify-between px-6 py-4 border-b border-white/5"
-            style={{ background: 'rgba(8, 13, 24, 0.8)', backdropFilter: 'blur(12px)' }}>
-      {/* ---- Page Context ---- */}
-      <div className="flex items-center gap-3">
-        {activeSessionId && (
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg"
-               style={{ background: 'rgba(99, 102, 241, 0.12)', border: '1px solid rgba(99,102,241,0.25)' }}>
-            <span className="pulse-dot">
-              <span></span>
-              <span></span>
+    <header
+      className="flex flex-wrap items-center justify-between px-6 py-3 border-b border-slate-200 bg-white z-20 gap-3"
+    >
+      {/* Left Cluster: Active Session Status & Iteration */}
+      <div className="flex items-center gap-2.5">
+        <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider text-[10px] mr-1">
+          Agent State:
+        </span>
+
+        {/* System Status Pill */}
+        <div className={`flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold border ${getStatusStyle(systemStatus)}`}>
+          {systemStatus === 'Researching' && (
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-600 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-600"></span>
             </span>
-            <span className="text-xs font-medium text-brand-300">
-              Session: {activeSessionId.slice(0, 8)}…
+          )}
+          {systemStatus === 'Completed' && <span className="text-emerald-600">✓</span>}
+          {systemStatus === 'Paused' && <span className="text-amber-600">⏸</span>}
+          {systemStatus === 'Error' && <span className="text-red-600">✕</span>}
+          {systemStatus === 'Online' && <span className="text-emerald-600">●</span>}
+          <span>{systemStatus}</span>
+        </div>
+
+        {/* Iteration Counter Badge */}
+        {activeSession && (
+          <div className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono font-semibold bg-blue-50 text-blue-600 border border-blue-200">
+            <RefreshCw size={11} className={systemStatus === 'Researching' ? 'animate-spin' : ''} />
+            <span>
+              Iteration {activeSession.current_iteration} / {activeSession.max_iterations}
             </span>
           </div>
         )}
+
+        {/* Human Approval Alert Trigger (HITL) */}
+        {pendingApproval && (
+          <button
+            id="hitl-approval-badge-btn"
+            onClick={() => dispatch({ type: 'SET_PENDING_APPROVAL', payload: pendingApproval })}
+            className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200 animate-pulse hover:bg-amber-100 transition-colors cursor-pointer"
+          >
+            <AlertTriangle size={12} className="text-amber-600" />
+            <span>Approval Required</span>
+          </button>
+        )}
       </div>
 
-      {/* ---- Right Controls ---- */}
-      <div className="flex items-center gap-3">
-        {/* API Status pill */}
-        <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border ${
-          apiHealthy
-            ? 'bg-emerald-950/60 text-emerald-400 border-emerald-800/50'
-            : 'bg-red-950/60 text-red-400 border-red-800/50'
-        }`}>
+      {/* Right Cluster: API & WebSocket Connectivity Status */}
+      <div className="flex items-center gap-2.5">
+        {/* API Status */}
+        <div
+          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold border ${
+            apiHealthy
+              ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+              : 'bg-red-50 text-red-700 border-red-200'
+          }`}
+          title={apiHealthy ? 'FastAPI Backend Online' : 'API Unreachable'}
+        >
           <Zap size={10} />
-          {apiHealthy ? 'API Healthy' : 'API Offline'}
+          <span>API {apiHealthy ? 'Online' : 'Offline'}</span>
         </div>
 
-        {/* Notifications placeholder */}
-        <button id="notifications-btn"
-                className="relative p-2 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-colors duration-200"
-                aria-label="Notifications">
-          <Bell size={18} />
-        </button>
+        {/* WS Status */}
+        <div
+          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold border ${
+            wsConnected
+              ? 'bg-blue-50 text-blue-700 border-blue-200'
+              : 'bg-slate-100 text-slate-500 border-slate-200'
+          }`}
+          title={wsConnected ? 'Real-time WebSocket Live' : 'WebSocket Disconnected'}
+        >
+          <Shield size={10} />
+          <span>WS {wsConnected ? 'Live' : 'Idle'}</span>
+        </div>
       </div>
     </header>
   )

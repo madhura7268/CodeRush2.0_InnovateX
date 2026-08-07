@@ -1,7 +1,5 @@
 /**
  * DashboardLayout — Shared layout with sidebar and top navbar.
- *
- * All page routes render inside the <Outlet /> content area.
  */
 
 import { Outlet } from 'react-router-dom'
@@ -10,17 +8,17 @@ import Navbar from '@/components/Navbar'
 
 export default function DashboardLayout() {
   return (
-    <div className="flex h-screen overflow-hidden">
-      {/* ---- Sidebar ---- */}
+    <div className="flex h-screen overflow-hidden bg-slate-50">
+      {/* Sidebar */}
       <Sidebar />
 
-      {/* ---- Main Content Area ---- */}
-      <div className="flex flex-col flex-1 overflow-hidden">
+      {/* Main Content Area */}
+      <div className="flex flex-col flex-1 overflow-hidden min-w-0">
         {/* Top Navbar */}
         <Navbar />
 
         {/* Page Content */}
-        <main className="flex-1 overflow-y-auto p-6">
+        <main className="flex-1 overflow-y-auto p-6 bg-slate-50">
           <Outlet />
         </main>
       </div>

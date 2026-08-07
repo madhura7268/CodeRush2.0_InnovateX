@@ -4,11 +4,13 @@
   "description": "Self-Evolving Autonomous Research Agent — Hackathon Monorepo",
   "private": true,
   "scripts": {
+    "dev": "concurrently -k -p \"[{name}]\" -n \"BACKEND,FRONTEND\" -c \"blue.bold,cyan.bold\" \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:backend": "node scripts/dev-backend.js",
     "dev:frontend": "npm run dev --prefix frontend",
     "build:frontend": "npm run build --prefix frontend",
     "install:frontend": "npm install --prefix frontend",
     "install:all": "npm run install:frontend",
-    "start": "npm run dev:frontend",
+    "start": "npm run dev",
     "lint:frontend": "npm run lint --prefix frontend"
   },
   "engines": {
@@ -17,5 +19,8 @@
   },
   "workspaces": [
     "frontend"
-  ]
+  ],
+  "devDependencies": {
+    "concurrently": "^10.0.4"
+  }
 }

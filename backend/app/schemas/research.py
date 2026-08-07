@@ -152,7 +152,7 @@ class IngestResponse(BaseModel):
 class EmbedRequest(BaseModel):
     """Request schema for embedding API."""
 
-    texts: List[str] = Field(..., min_items=1, description="Texts to embed.")
+    texts: List[str] = Field(..., min_length=1, description="Texts to embed.")
     provider: Optional[str] = Field(default=None, description="gemini, sentence-transformers, or default.")
 
 
@@ -238,7 +238,7 @@ class ContradictionRequest(BaseModel):
     """Request to detect contradictions across evidence chunks."""
 
     topic: str
-    evidence_texts: List[str] = Field(..., min_items=2, description="Evidence text samples to compare.")
+    evidence_texts: List[str] = Field(..., min_length=2, description="Evidence text samples to compare.")
 
 
 class ContradictionClaim(BaseModel):

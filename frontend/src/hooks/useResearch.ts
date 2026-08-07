@@ -1,8 +1,7 @@
 /**
  * useResearch — Custom hook for research session management.
  *
- * Wraps API calls for starting, monitoring, and cancelling research sessions.
- * Handles loading states and error boundaries.
+ * Wraps API calls for starting, monitoring, pausing, resuming, and stopping research sessions.
  */
 
 import { useState, useCallback } from 'react'
@@ -14,12 +13,16 @@ interface UseResearchReturn {
   isLoading: boolean
   error: string | null
   startResearch: (request: ResearchRequest) => Promise<string | null>
+  pauseResearch: () => Promise<void>
+  resumeResearch: () => Promise<void>
+  stopResearch: () => Promise<void>
   cancelResearch: (sessionId: string) => Promise<void>
   refreshStatus: (sessionId: string) => Promise<ResearchSessionStatus | null>
 }
 
 export function useResearch(): UseResearchReturn {
-  const { dispatch } = useAgent()
+  const { state, dispatch } = useAgent()
+  const { activeSessionId } = state
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -42,9 +45,39 @@ export function useResearch(): UseResearchReturn {
     [dispatch]
   )
 
+  const pauseResearch = useCallback(async () => {
+    if (!activeSessionId) return
+    try {
+      await api.research.pause(activeSessionId)
+      dispatch({ type: 'SET_SYSTEM_STATUS', payload: 'Paused' })
+    } catch {
+      setError('Failed to pause research')
+    }
+  }, [activeSessionId, dispatch])
+
+  const resumeResearch = useCallback(async () => {
+    if (!activeSessionId) return
+    try {
+      await api.research.resume(activeSessionId)
+      dispatch({ type: 'SET_SYSTEM_STATUS', payload: 'Researching' })
+    } catch {
+      setError('Failed to resume research')
+    }
+  }, [activeSessionId, dispatch])
+
+  const stopResearch = useCallback(async () => {
+    if (!activeSessionId) return
+    try {
+      await api.research.stop(activeSessionId)
+      dispatch({ type: 'SET_SYSTEM_STATUS', payload: 'Completed' })
+    } catch {
+      setError('Failed to stop research')
+    }
+  }, [activeSessionId, dispatch])
+
   const cancelResearch = useCallback(async (sessionId: string) => {
     try {
-      await api.research.cancel(sessionId)
+      await api.research.stop(sessionId)
       dispatch({ type: 'SET_ACTIVE_SESSION', payload: null })
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Failed to cancel session'
@@ -65,5 +98,14 @@ export function useResearch(): UseResearchReturn {
     [dispatch]
   )
 
-  return { isLoading, error, startResearch, cancelResearch, refreshStatus }
+  return {
+    isLoading,
+    error,
+    startResearch,
+    pauseResearch,
+    resumeResearch,
+    stopResearch,
+    cancelResearch,
+    refreshStatus,
+  }
 }

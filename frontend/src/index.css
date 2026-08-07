@@ -1,0 +1,230 @@
+/* =============================================================================
+   Global Styles — Self-Evolving Research Agent
+   Design System: Dark mode, glassmorphism, premium aesthetics
+   ============================================================================= */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* --------------------------------------------------------------------------
+   CSS Custom Properties (Design Tokens)
+   -------------------------------------------------------------------------- */
+:root {
+  --color-brand-500: #6366f1;
+  --color-accent-500: #06b6d4;
+  --color-surface-900: #0f172a;
+  --color-surface-950: #080d18;
+
+  --transition-default: 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 400ms cubic-bezier(0.4, 0, 0.2, 1);
+
+  --border-glass: 1px solid rgba(255, 255, 255, 0.08);
+  --shadow-glass: 0 4px 24px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255,255,255,0.05);
+}
+
+/* --------------------------------------------------------------------------
+   Base Reset
+   -------------------------------------------------------------------------- */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+  font-size: 16px;
+}
+
+body {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background-color: #080d18;
+  color: #f8fafc;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  min-height: 100vh;
+
+  /* Subtle noise texture overlay for depth */
+  background-image:
+    radial-gradient(ellipse at 20% 50%, rgba(99, 102, 241, 0.08) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 20%, rgba(6, 182, 212, 0.06) 0%, transparent 50%);
+}
+
+/* --------------------------------------------------------------------------
+   Custom Scrollbar
+   -------------------------------------------------------------------------- */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: #0f172a; }
+::-webkit-scrollbar-thumb { background: rgba(99, 102, 241, 0.4); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(99, 102, 241, 0.7); }
+
+/* --------------------------------------------------------------------------
+   Component Layer — Reusable UI Patterns
+   -------------------------------------------------------------------------- */
+@layer components {
+
+  /* --- Glassmorphism Card --- */
+  .card-glass {
+    @apply rounded-2xl border;
+    background: rgba(15, 23, 42, 0.6);
+    border-color: rgba(255, 255, 255, 0.08);
+    box-shadow: var(--shadow-glass);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    transition: box-shadow var(--transition-default), transform var(--transition-default);
+  }
+  .card-glass:hover {
+    box-shadow: 0 8px 40px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.08);
+    transform: translateY(-1px);
+  }
+
+  /* --- Gradient Border Card --- */
+  .card-gradient-border {
+    @apply rounded-2xl p-px;
+    background: linear-gradient(135deg, rgba(99,102,241,0.5), rgba(6,182,212,0.3));
+  }
+  .card-gradient-border-inner {
+    @apply rounded-2xl;
+    background: #0f172a;
+  }
+
+  /* --- Brand Button --- */
+  .btn-primary {
+    @apply inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-sm
+           transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-brand-500/50;
+    background: linear-gradient(135deg, #4f46e5, #4338ca);
+    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.35);
+  }
+  .btn-primary:hover {
+    background: linear-gradient(135deg, #6366f1, #4f46e5);
+    box-shadow: 0 6px 20px rgba(99, 102, 241, 0.5);
+    transform: translateY(-1px);
+  }
+  .btn-primary:active { transform: translateY(0); }
+
+  /* --- Secondary Button --- */
+  .btn-secondary {
+    @apply inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-sm
+           border transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-brand-500/30;
+    border-color: rgba(99, 102, 241, 0.4);
+    color: #818cf8;
+    background: rgba(99, 102, 241, 0.08);
+  }
+  .btn-secondary:hover {
+    background: rgba(99, 102, 241, 0.15);
+    border-color: rgba(99, 102, 241, 0.6);
+    color: #a5b4fc;
+  }
+
+  /* --- Input --- */
+  .input-field {
+    @apply w-full px-4 py-3 rounded-xl text-sm font-medium
+           transition-all duration-200 focus:outline-none;
+    background: rgba(30, 41, 59, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #f1f5f9;
+  }
+  .input-field::placeholder { color: rgba(148, 163, 184, 0.6); }
+  .input-field:focus {
+    border-color: rgba(99, 102, 241, 0.6);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+  }
+
+  /* --- Gradient Text --- */
+  .text-gradient {
+    background: linear-gradient(135deg, #818cf8, #22d3ee);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* --- Status Badge --- */
+  .badge {
+    @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold;
+  }
+  .badge-pending   { @apply badge bg-slate-800 text-slate-400 border border-slate-700; }
+  .badge-running   { @apply badge bg-brand-950 text-brand-300 border border-brand-700; }
+  .badge-completed { @apply badge bg-emerald-950 text-emerald-400 border border-emerald-800; }
+  .badge-failed    { @apply badge bg-red-950 text-red-400 border border-red-800; }
+  .badge-cancelled { @apply badge bg-orange-950 text-orange-400 border border-orange-800; }
+  .badge-paused    { @apply badge bg-yellow-950 text-yellow-400 border border-yellow-800; }
+  .badge-blocked   { @apply badge bg-red-950 text-red-400 border border-red-800; }
+
+  /* --- Divider --- */
+  .divider {
+    @apply border-t;
+    border-color: rgba(255, 255, 255, 0.06);
+  }
+
+  /* --- Sidebar Nav Item --- */
+  .nav-item {
+    @apply flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium
+           transition-all duration-200 cursor-pointer;
+    color: rgba(148, 163, 184, 0.9);
+  }
+  .nav-item:hover {
+    background: rgba(99, 102, 241, 0.1);
+    color: #c7d2fe;
+  }
+  .nav-item.active {
+    background: rgba(99, 102, 241, 0.15);
+    color: #a5b4fc;
+    border: 1px solid rgba(99, 102, 241, 0.25);
+  }
+
+  /* --- Metric Card --- */
+  .metric-card {
+    @apply card-glass p-5 flex flex-col gap-2;
+  }
+
+  /* --- Pulse Dot (live indicator) --- */
+  .pulse-dot {
+    @apply relative flex h-2.5 w-2.5;
+  }
+  .pulse-dot span:first-child {
+    @apply animate-ping absolute inline-flex h-full w-full rounded-full opacity-75;
+    background: #10b981;
+  }
+  .pulse-dot span:last-child {
+    @apply relative inline-flex rounded-full h-2.5 w-2.5;
+    background: #10b981;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Utility Layer
+   -------------------------------------------------------------------------- */
+@layer utilities {
+  .text-muted  { color: rgba(148, 163, 184, 0.7); }
+  .text-subtle { color: rgba(148, 163, 184, 0.4); }
+  .animate-fade-in { animation: fadeIn 0.4s ease-out both; }
+  .animate-slide-up { animation: slideUp 0.4s ease-out both; }
+}
+
+/* --------------------------------------------------------------------------
+   Keyframes (supplement tailwind.config.js animations)
+   -------------------------------------------------------------------------- */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* --- Skeleton Loader --- */
+.skeleton {
+  background: linear-gradient(90deg, #1e293b 25%, #253353 50%, #1e293b 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 0.5rem;
+}

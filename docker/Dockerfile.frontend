@@ -1,0 +1,47 @@
+# ==============================================================================
+# Frontend Dockerfile — Vite/React Application
+# Supports both development (hot reload) and production (Nginx) targets
+# ==============================================================================
+
+# ---- Development stage (hot reload) ----
+FROM node:20-alpine AS dev
+
+WORKDIR /app
+
+COPY frontend/package.json ./
+RUN npm install
+
+COPY frontend/ .
+
+EXPOSE 5173
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
+
+
+# ---- Build stage ----
+FROM node:20-alpine AS builder
+
+WORKDIR /app
+
+COPY frontend/package.json ./
+RUN npm install
+
+COPY frontend/ .
+
+RUN npm run build
+
+
+# ---- Production stage (Nginx) ----
+FROM nginx:alpine AS production
+
+# Copy Nginx configuration
+COPY docker/nginx.conf /etc/nginx/conf.d/default.conf
+
+# Copy built frontend assets
+COPY --from=builder /app/dist /usr/share/nginx/html
+
+EXPOSE 80
+
+HEALTHCHECK --interval=15s --timeout=5s --retries=3 \
+  CMD wget -qO- http://localhost/ || exit 1
+
+CMD ["nginx", "-g", "daemon off;"]

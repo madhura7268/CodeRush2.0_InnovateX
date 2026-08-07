@@ -2,11 +2,11 @@
 Test: Research API Endpoints
 
 Tests that research session endpoints respond correctly
-using the placeholder pipeline implementation.
+using the pipeline implementation.
 """
 
 import pytest
-from httpx import AsyncClient
+from httpx import ASGITransport, AsyncClient
 
 from app.main import app
 
@@ -14,7 +14,8 @@ from app.main import app
 @pytest.mark.asyncio
 async def test_start_research_returns_session_id():
     """Starting research should return a session_id and websocket URL."""
-    async with AsyncClient(app=app, base_url="http://test") as client:
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
         response = await client.post(
             "/api/research",
             json={"question": "What are the latest advances in quantum computing?"},
@@ -30,7 +31,8 @@ async def test_start_research_returns_session_id():
 @pytest.mark.asyncio
 async def test_get_session_status_returns_status():
     """Getting status for an existing session should return session data."""
-    async with AsyncClient(app=app, base_url="http://test") as client:
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
         # Start a session first
         create_response = await client.post(
             "/api/research",
@@ -50,7 +52,8 @@ async def test_get_session_status_returns_status():
 @pytest.mark.asyncio
 async def test_get_nonexistent_session_returns_404():
     """Getting status for a non-existent session should return 404."""
-    async with AsyncClient(app=app, base_url="http://test") as client:
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
         response = await client.get("/api/research/nonexistent-session-id")
 
     assert response.status_code == 404
@@ -59,7 +62,8 @@ async def test_get_nonexistent_session_returns_404():
 @pytest.mark.asyncio
 async def test_research_question_validation():
     """Research question must be at least 10 characters long."""
-    async with AsyncClient(app=app, base_url="http://test") as client:
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
         response = await client.post(
             "/api/research",
             json={"question": "short"},

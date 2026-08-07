@@ -4,6 +4,7 @@
   "description": "Self-Evolving Autonomous Research Agent — Hackathon Monorepo",
   "private": true,
   "scripts": {
+    "dev": "npm run dev:frontend",
     "dev:frontend": "npm run dev --prefix frontend",
     "build:frontend": "npm run build --prefix frontend",
     "install:frontend": "npm install --prefix frontend",

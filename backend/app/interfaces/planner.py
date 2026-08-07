@@ -14,7 +14,6 @@ Implementing this module:
 """
 
 from abc import ABC, abstractmethod
-from typing import List
 
 from app.schemas.planner import ResearchPlan, TaskStep
 
@@ -68,7 +67,7 @@ class IPlanner(ABC):
     async def adapt_plan(
         self,
         plan: ResearchPlan,
-        completed_steps: List[TaskStep],
+        completed_steps: list[TaskStep],
         iteration: int,
     ) -> ResearchPlan:
         """

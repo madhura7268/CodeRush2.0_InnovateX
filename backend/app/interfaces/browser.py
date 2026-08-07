@@ -14,7 +14,6 @@ Implementing this module:
 """
 
 from abc import ABC, abstractmethod
-from typing import List, Optional
 
 from app.schemas.research import SearchResult
 
@@ -28,9 +27,9 @@ class IBrowserTool(ABC):
         query: str,
         max_results: int = 10,
         search_depth: str = "basic",
-        include_domains: Optional[List[str]] = None,
-        exclude_domains: Optional[List[str]] = None,
-    ) -> List[SearchResult]:
+        include_domains: list[str] | None = None,
+        exclude_domains: list[str] | None = None,
+    ) -> list[SearchResult]:
         """
         Perform a web search and return structured results.
 
@@ -62,7 +61,7 @@ class IBrowserTool(ABC):
     @abstractmethod
     async def search_and_extract(
         self, query: str, max_results: int = 5
-    ) -> List[SearchResult]:
+    ) -> list[SearchResult]:
         """
         Perform a search and automatically fetch full content for each result.
 

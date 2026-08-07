@@ -5,13 +5,13 @@ Takes a user query, generates query embeddings, retrieves Top-K relevant chunks
 from the vector database, ranks results, and returns structured RetrievalResponse objects.
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Any
 from urllib.parse import urlparse
 
 from app.core.logging import get_logger
 from app.research.embeddings.embedding_service import EmbeddingService
 from app.research.vectordb.chroma_db import VectorDatabaseService
-from app.schemas.research import Citation, Chunk, RetrievalResponse, RetrievedChunk
+from app.schemas.research import Chunk, Citation, RetrievalResponse, RetrievedChunk
 
 logger = get_logger(__name__)
 
@@ -31,8 +31,8 @@ class SemanticRetriever:
         self,
         query: str,
         top_k: int = 5,
-        session_id: Optional[str] = None,
-        filter_metadata: Optional[Dict[str, Any]] = None,
+        session_id: str | None = None,
+        filter_metadata: dict[str, Any] | None = None,
     ) -> RetrievalResponse:
         """
         Retrieve and rank Top-K relevant chunks for a user query.
@@ -52,7 +52,7 @@ class SemanticRetriever:
         query_embedding = await self.embedding_service.generate_single_embedding(query)
 
         # Build metadata filter if session_id provided
-        where_filter: Dict[str, Any] = filter_metadata or {}
+        where_filter: dict[str, Any] = filter_metadata or {}
         if session_id:
             where_filter["session_id"] = session_id
 
@@ -63,7 +63,7 @@ class SemanticRetriever:
             metadata_filter=where_filter if where_filter else None,
         )
 
-        retrieved_chunks: List[RetrievedChunk] = []
+        retrieved_chunks: list[RetrievedChunk] = []
         for res in raw_results:
             source_url = res.get("source", "https://example.com/source")
             domain = urlparse(source_url).netloc or "example.com"

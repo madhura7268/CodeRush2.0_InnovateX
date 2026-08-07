@@ -5,7 +5,6 @@ Pydantic models for the final structured research report.
 """
 
 from datetime import datetime
-from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field
 
@@ -33,7 +32,7 @@ class ReportSection(BaseModel):
 
     title: str
     content: str
-    citations: List[Citation] = Field(default_factory=list)
+    citations: list[Citation] = Field(default_factory=list)
     order: int = 1
 
 
@@ -50,17 +49,17 @@ class StructuredReport(BaseModel):
     )
 
     # Detailed content
-    sections: List[ReportSection] = Field(
+    sections: list[ReportSection] = Field(
         default_factory=list,
         description="Detailed report sections (background, findings, analysis, etc.).",
     )
 
     # Supporting evidence
-    all_citations: List[Citation] = Field(
+    all_citations: list[Citation] = Field(
         default_factory=list,
         description="All sources cited across all sections.",
     )
-    experiment_results: List[ExperimentResult] = Field(
+    experiment_results: list[ExperimentResult] = Field(
         default_factory=list,
         description="Results from sandbox code experiments.",
     )
@@ -71,7 +70,7 @@ class StructuredReport(BaseModel):
         le=1.0,
         description="Overall confidence score from the Evaluation module.",
     )
-    quality_metrics: Dict[str, float] = Field(
+    quality_metrics: dict[str, float] = Field(
         default_factory=dict,
         description="Detailed dimension scores from evaluation.",
     )
@@ -85,7 +84,7 @@ class StructuredReport(BaseModel):
     total_sources_consulted: int = 0
 
     # Caveats
-    limitations: List[str] = Field(
+    limitations: list[str] = Field(
         default_factory=list,
         description="Known limitations or gaps in the research.",
     )

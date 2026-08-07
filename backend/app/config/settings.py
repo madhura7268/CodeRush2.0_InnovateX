@@ -16,7 +16,6 @@ Adding a new configuration value:
 """
 
 from functools import lru_cache
-from typing import List
 
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -48,7 +47,7 @@ class Settings(BaseSettings):
     BACKEND_HOST: str = "0.0.0.0"
     BACKEND_PORT: int = 8000
     SECRET_KEY: str = "dev-secret-key-change-in-production"
-    ALLOWED_ORIGINS: List[str] = ["http://localhost:5173", "http://localhost:3000"]
+    ALLOWED_ORIGINS: list[str] = ["http://localhost:5173", "http://localhost:3000"]
 
     # --- PostgreSQL ---
     POSTGRES_HOST: str = "localhost"

@@ -3,7 +3,7 @@ Shared utility functions for the Research Agent backend.
 """
 
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 
 
 def generate_id(prefix: str = "") -> str:
@@ -14,7 +14,7 @@ def generate_id(prefix: str = "") -> str:
 
 def utcnow() -> datetime:
     """Return the current UTC timestamp."""
-    return datetime.utcnow()
+    return datetime.now(timezone.utc)
 
 
 def truncate_text(text: str, max_length: int = 500) -> str:

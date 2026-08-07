@@ -21,7 +21,6 @@ Implementing this module:
 """
 
 from abc import ABC, abstractmethod
-from typing import List
 
 from app.schemas.evaluation import (
     EvaluationResult,
@@ -37,7 +36,7 @@ class IEvaluation(ABC):
     async def evaluate_findings(
         self,
         question: str,
-        findings: List[ResearchFinding],
+        findings: list[ResearchFinding],
         session_id: str,
         iteration: int,
     ) -> EvaluationResult:
@@ -84,7 +83,7 @@ class IEvaluation(ABC):
     @abstractmethod
     async def get_iteration_history(
         self, session_id: str
-    ) -> List[IterationEvaluation]:
+    ) -> list[IterationEvaluation]:
         """
         Retrieve evaluation history across all iterations for a session.
 

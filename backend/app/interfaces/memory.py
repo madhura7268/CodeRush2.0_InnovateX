@@ -20,7 +20,7 @@ Implementing this module:
 """
 
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 
 class IMemory(ABC):
@@ -30,7 +30,7 @@ class IMemory(ABC):
     async def store(
         self,
         content: str,
-        metadata: Dict[str, Any],
+        metadata: dict[str, Any],
         session_id: str,
         memory_type: str = "long_term",
     ) -> str:
@@ -55,10 +55,10 @@ class IMemory(ABC):
     async def retrieve(
         self,
         query: str,
-        session_id: Optional[str] = None,
+        session_id: str | None = None,
         top_k: int = 5,
         memory_type: str = "long_term",
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """
         Retrieve the most relevant documents for a query using vector similarity.
 
@@ -74,7 +74,7 @@ class IMemory(ABC):
         ...
 
     @abstractmethod
-    async def get_session_context(self, session_id: str) -> Dict[str, Any]:
+    async def get_session_context(self, session_id: str) -> dict[str, Any]:
         """
         Retrieve the full short-term context for a research session.
 
@@ -101,7 +101,7 @@ class IMemory(ABC):
 
     @abstractmethod
     async def update_session_state(
-        self, session_id: str, state_update: Dict[str, Any]
+        self, session_id: str, state_update: dict[str, Any]
     ) -> None:
         """
         Update the current session state (short-term memory).

@@ -12,8 +12,7 @@ TODO: Implement using an LLM (e.g., GPT-4o via LangChain) to:
 """
 
 import uuid
-from datetime import datetime
-from typing import List
+from datetime import datetime, timezone
 
 from app.config.settings import Settings
 from app.core.logging import get_logger
@@ -80,7 +79,7 @@ class ResearchPlanner(IPlanner):
                 ),
             ],
             rationale="[PLACEHOLDER] Default 3-step research plan.",
-            created_at=datetime.utcnow(),
+            created_at=datetime.now(timezone.utc),
         )
         _plans[session_id] = plan
         logger.info("Research plan generated (placeholder)", plan_id=plan_id)
@@ -93,7 +92,7 @@ class ResearchPlanner(IPlanner):
     async def adapt_plan(
         self,
         plan: ResearchPlan,
-        completed_steps: List[TaskStep],
+        completed_steps: list[TaskStep],
         iteration: int,
     ) -> ResearchPlan:
         """TODO: Use LLM to adapt remaining steps based on intermediate results."""

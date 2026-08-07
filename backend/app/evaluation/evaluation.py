@@ -19,8 +19,7 @@ Dimensions to evaluate (suggested weights):
 """
 
 import uuid
-from datetime import datetime
-from typing import List
+from datetime import datetime, timezone
 
 from app.config.settings import Settings
 from app.core.logging import get_logger
@@ -30,9 +29,8 @@ from app.schemas.research import ResearchFinding
 
 logger = get_logger(__name__)
 
-_evaluation_history: Dict = {}
+_evaluation_history: dict[str, list[EvaluationResult]] = {}
 
-from typing import Dict
 
 
 class EvaluationService(IEvaluation):
@@ -49,7 +47,7 @@ class EvaluationService(IEvaluation):
     async def evaluate_findings(
         self,
         question: str,
-        findings: List[ResearchFinding],
+        findings: list[ResearchFinding],
         session_id: str,
         iteration: int,
     ) -> EvaluationResult:
@@ -76,7 +74,7 @@ class EvaluationService(IEvaluation):
             improvement_suggestions=[
                 "[PLACEHOLDER] Implement real evaluation to get improvement suggestions."
             ],
-            evaluated_at=datetime.utcnow(),
+            evaluated_at=datetime.now(timezone.utc),
         )
         if session_id not in _evaluation_history:
             _evaluation_history[session_id] = []
@@ -97,7 +95,7 @@ class EvaluationService(IEvaluation):
 
     async def get_iteration_history(
         self, session_id: str
-    ) -> List[IterationEvaluation]:
+    ) -> list[IterationEvaluation]:
         """TODO: Fetch from PostgreSQL evaluation table."""
         raw = _evaluation_history.get(session_id, [])
         return [

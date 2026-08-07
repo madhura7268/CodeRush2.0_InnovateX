@@ -16,8 +16,8 @@ This should:
 """
 
 import uuid
-from datetime import datetime
-from typing import AsyncGenerator
+from collections.abc import AsyncGenerator
+from datetime import datetime, timezone
 
 from app.config.settings import Settings
 from app.core.logging import get_logger
@@ -52,8 +52,8 @@ class ResearchPipeline(IResearchPipeline):
             "question": request.question,
             "current_iteration": 0,
             "max_iterations": request.max_iterations or self.settings.MAX_RESEARCH_ITERATIONS,
-            "created_at": datetime.utcnow(),
-            "updated_at": datetime.utcnow(),
+            "created_at": datetime.now(timezone.utc),
+            "updated_at": datetime.now(timezone.utc),
         }
         logger.info("Research session created (placeholder)", session_id=session_id)
         return session_id

@@ -7,7 +7,7 @@ source verification, and contradiction detection.
 """
 
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -27,13 +27,13 @@ class ResearchRequest(BaseModel):
         description="The research question or topic to investigate.",
         examples=["What are the latest advances in quantum computing error correction?"],
     )
-    max_iterations: Optional[int] = Field(
+    max_iterations: int | None = Field(
         default=None,
         ge=1,
         le=10,
         description="Override for maximum research iterations (defaults to settings).",
     )
-    confidence_threshold: Optional[float] = Field(
+    confidence_threshold: float | None = Field(
         default=None,
         ge=0.0,
         le=1.0,
@@ -43,7 +43,7 @@ class ResearchRequest(BaseModel):
         default=True,
         description="Whether to allow the agent to run code experiments.",
     )
-    tags: List[str] = Field(
+    tags: list[str] = Field(
         default_factory=list,
         description="Optional tags for categorizing this research session.",
     )
@@ -57,11 +57,11 @@ class ResearchSessionStatus(BaseModel):
     question: str
     current_iteration: int = 0
     max_iterations: int
-    current_step: Optional[str] = None
+    current_step: str | None = None
     progress_percentage: float = Field(default=0.0, ge=0.0, le=100.0)
     created_at: datetime
     updated_at: datetime
-    estimated_completion: Optional[datetime] = None
+    estimated_completion: datetime | None = None
 
 
 # ---------------------------------------------------------------------------
@@ -73,8 +73,8 @@ class SearchRequest(BaseModel):
     query: str = Field(..., min_length=2, description="Search query string.")
     max_results: int = Field(default=5, ge=1, le=20, description="Max search results.")
     search_depth: str = Field(default="basic", description="basic or advanced search depth.")
-    include_domains: Optional[List[str]] = Field(default=None, description="Restrict domains.")
-    exclude_domains: Optional[List[str]] = Field(default=None, description="Exclude domains.")
+    include_domains: list[str] | None = Field(default=None, description="Restrict domains.")
+    exclude_domains: list[str] | None = Field(default=None, description="Exclude domains.")
 
 
 class SearchResult(BaseModel):
@@ -84,15 +84,15 @@ class SearchResult(BaseModel):
     url: str
     content: str
     relevance_score: float = Field(default=0.8, ge=0.0, le=1.0)
-    source_domain: Optional[str] = None
-    published_date: Optional[str] = None
+    source_domain: str | None = None
+    published_date: str | None = None
 
 
 class SearchResponse(BaseModel):
     """Response schema for search API."""
 
     query: str
-    results: List[SearchResult] = Field(default_factory=list)
+    results: list[SearchResult] = Field(default_factory=list)
     total_results: int = 0
     provider_used: str = "tavily"
 
@@ -107,9 +107,9 @@ class Document(BaseModel):
     title: str
     content: str
     file_type: str = Field(..., description="pdf, docx, txt, md, csv, html")
-    source_path_or_url: Optional[str] = None
-    page_count: Optional[int] = 1
-    metadata: Dict[str, Any] = Field(default_factory=dict)
+    source_path_or_url: str | None = None
+    page_count: int | None = 1
+    metadata: dict[str, Any] = Field(default_factory=dict)
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 
@@ -119,22 +119,22 @@ class Chunk(BaseModel):
     chunk_id: str
     document_id: str
     content: str
-    page_number: Optional[int] = 1
+    page_number: int | None = 1
     start_char: int = 0
     end_char: int = 0
     source: str = ""
-    metadata: Dict[str, Any] = Field(default_factory=dict)
+    metadata: dict[str, Any] = Field(default_factory=dict)
     timestamp: datetime = Field(default_factory=datetime.utcnow)
 
 
 class IngestRequest(BaseModel):
     """Request schema for document ingestion API."""
 
-    text: Optional[str] = Field(default=None, description="Raw text content to ingest.")
-    url: Optional[str] = Field(default=None, description="Web URL to scrape & ingest.")
-    file_name: Optional[str] = Field(default="uploaded_document.txt", description="Document title.")
+    text: str | None = Field(default=None, description="Raw text content to ingest.")
+    url: str | None = Field(default=None, description="Web URL to scrape & ingest.")
+    file_name: str | None = Field(default="uploaded_document.txt", description="Document title.")
     file_type: str = Field(default="txt", description="pdf, docx, txt, md, csv, html")
-    metadata: Dict[str, Any] = Field(default_factory=dict)
+    metadata: dict[str, Any] = Field(default_factory=dict)
 
 
 class IngestResponse(BaseModel):
@@ -152,14 +152,14 @@ class IngestResponse(BaseModel):
 class EmbedRequest(BaseModel):
     """Request schema for embedding API."""
 
-    texts: List[str] = Field(..., min_length=1, description="Texts to embed.")
-    provider: Optional[str] = Field(default=None, description="gemini, sentence-transformers, or default.")
+    texts: list[str] = Field(..., min_length=1, description="Texts to embed.")
+    provider: str | None = Field(default=None, description="gemini, sentence-transformers, or default.")
 
 
 class EmbedResponse(BaseModel):
     """Response schema for embedding API."""
 
-    embeddings: List[List[float]]
+    embeddings: list[list[float]]
     dimensions: int
     provider_used: str
 
@@ -172,8 +172,8 @@ class RetrieveRequest(BaseModel):
 
     query: str = Field(..., min_length=2, description="User search query.")
     top_k: int = Field(default=5, ge=1, le=50, description="Top K results to retrieve.")
-    session_id: Optional[str] = Field(default=None, description="Filter by session_id.")
-    filter_metadata: Optional[Dict[str, Any]] = Field(default=None, description="Metadata filters.")
+    session_id: str | None = Field(default=None, description="Filter by session_id.")
+    filter_metadata: dict[str, Any] | None = Field(default=None, description="Metadata filters.")
 
 
 class Citation(BaseModel):
@@ -183,8 +183,8 @@ class Citation(BaseModel):
     url: str
     source_domain: str
     accessed_at: datetime = Field(default_factory=datetime.utcnow)
-    excerpt: Optional[str] = None
-    page_number: Optional[int] = None
+    excerpt: str | None = None
+    page_number: int | None = None
     confidence_score: float = Field(default=0.85, ge=0.0, le=1.0)
 
 
@@ -201,7 +201,7 @@ class RetrievalResponse(BaseModel):
     """Response schema for semantic retrieval API."""
 
     query: str
-    results: List[RetrievedChunk] = Field(default_factory=list)
+    results: list[RetrievedChunk] = Field(default_factory=list)
     total_retrieved: int = 0
 
 
@@ -212,9 +212,9 @@ class SourceVerificationRequest(BaseModel):
     """Request to verify source reliability."""
 
     url: str
-    domain: Optional[str] = None
-    content_sample: Optional[str] = None
-    published_date: Optional[str] = None
+    domain: str | None = None
+    content_sample: str | None = None
+    published_date: str | None = None
 
 
 class SourceVerificationResponse(BaseModel):
@@ -238,7 +238,7 @@ class ContradictionRequest(BaseModel):
     """Request to detect contradictions across evidence chunks."""
 
     topic: str
-    evidence_texts: List[str] = Field(..., min_length=2, description="Evidence text samples to compare.")
+    evidence_texts: list[str] = Field(..., min_length=2, description="Evidence text samples to compare.")
 
 
 class ContradictionClaim(BaseModel):
@@ -246,8 +246,8 @@ class ContradictionClaim(BaseModel):
 
     claim_a: str
     claim_b: str
-    supporting_sources_a: List[str] = Field(default_factory=list)
-    supporting_sources_b: List[str] = Field(default_factory=list)
+    supporting_sources_a: list[str] = Field(default_factory=list)
+    supporting_sources_b: list[str] = Field(default_factory=list)
     confidence_level: float = Field(ge=0.0, le=1.0)
     explanation: str
 
@@ -257,7 +257,7 @@ class ContradictionResponse(BaseModel):
 
     topic: str
     contradictions_found: bool
-    claims: List[ContradictionClaim] = Field(default_factory=list)
+    claims: list[ContradictionClaim] = Field(default_factory=list)
     summary: str
 
 
@@ -271,9 +271,9 @@ class ResearchFinding(BaseModel):
     session_id: str
     iteration: int
     content: str
-    citations: List[Citation] = Field(default_factory=list)
+    citations: list[Citation] = Field(default_factory=list)
     tool_used: str
-    metadata: Dict[str, Any] = Field(default_factory=dict)
+    metadata: dict[str, Any] = Field(default_factory=dict)
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 
@@ -283,8 +283,8 @@ class ResearchResult(BaseModel):
     session_id: str
     question: str
     status: SessionStatus
-    findings: List[ResearchFinding]
+    findings: list[ResearchFinding]
     total_iterations: int
     overall_confidence: float = Field(ge=0.0, le=1.0)
-    report_id: Optional[str] = None
-    completed_at: Optional[datetime] = None
+    report_id: str | None = None
+    completed_at: datetime | None = None

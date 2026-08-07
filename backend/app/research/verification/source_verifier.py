@@ -12,8 +12,7 @@ Produces an overall source confidence score [0.0, 1.0].
 """
 
 import re
-from datetime import datetime
-from typing import Optional
+from datetime import datetime, timezone
 from urllib.parse import urlparse
 
 from app.core.logging import get_logger
@@ -45,7 +44,7 @@ class SourceVerifier:
             return 0.70
         return 0.50
 
-    def calculate_relevance_score(self, content_sample: Optional[str]) -> float:
+    def calculate_relevance_score(self, content_sample: str | None) -> float:
         """Score relevance based on content length and complexity."""
         if not content_sample:
             return 0.50
@@ -56,7 +55,7 @@ class SourceVerifier:
             return 0.75
         return 0.40
 
-    def calculate_recency_score(self, published_date: Optional[str]) -> float:
+    def calculate_recency_score(self, published_date: str | None) -> float:
         """Score recency based on publication year."""
         if not published_date:
             return 0.70  # default moderate score when date missing
@@ -65,7 +64,7 @@ class SourceVerifier:
             match = re.search(r"\b(20\d{2}|19\d{2})\b", published_date)
             if match:
                 year = int(match.group(1))
-                current_year = datetime.utcnow().year
+                current_year = datetime.now(timezone.utc).year
                 diff = current_year - year
                 if diff <= 1:
                     return 1.00
@@ -74,8 +73,8 @@ class SourceVerifier:
                 if diff <= 5:
                     return 0.70
                 return 0.50
-        except Exception:
-            pass
+        except (ValueError, TypeError) as e:
+            logger.debug("Failed to parse publication date '%s': %s", published_date, e)
         return 0.70
 
     def calculate_domain_reputation(self, domain: str) -> float:
@@ -86,7 +85,7 @@ class SourceVerifier:
             return 0.88
         return 0.65
 
-    def calculate_evidence_quality(self, content_sample: Optional[str]) -> float:
+    def calculate_evidence_quality(self, content_sample: str | None) -> float:
         """Score evidence quality based on structural indicators (citations, numbers, code)."""
         if not content_sample:
             return 0.40
@@ -107,9 +106,9 @@ class SourceVerifier:
     def verify_source(
         self,
         url: str,
-        domain: Optional[str] = None,
-        content_sample: Optional[str] = None,
-        published_date: Optional[str] = None,
+        domain: str | None = None,
+        content_sample: str | None = None,
+        published_date: str | None = None,
     ) -> SourceVerificationResponse:
         """
         Evaluate and verify a source across 5 dimensions.

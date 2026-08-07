@@ -10,7 +10,6 @@ TODO: Implement using Tavily SDK:
     results = client.search(query=query, max_results=max_results)
 """
 
-from typing import List, Optional
 
 from app.config.settings import Settings
 from app.core.logging import get_logger
@@ -38,9 +37,9 @@ class BrowserTool(IBrowserTool):
         query: str,
         max_results: int = 10,
         search_depth: str = "basic",
-        include_domains: Optional[List[str]] = None,
-        exclude_domains: Optional[List[str]] = None,
-    ) -> List[SearchResult]:
+        include_domains: list[str] | None = None,
+        exclude_domains: list[str] | None = None,
+    ) -> list[SearchResult]:
         """TODO: Call Tavily search API."""
         logger.info("Web search requested (placeholder)", query=query)
         return [
@@ -60,6 +59,6 @@ class BrowserTool(IBrowserTool):
 
     async def search_and_extract(
         self, query: str, max_results: int = 5
-    ) -> List[SearchResult]:
+    ) -> list[SearchResult]:
         """TODO: Combine search + extract for deep research."""
         return await self.search(query, max_results=max_results)

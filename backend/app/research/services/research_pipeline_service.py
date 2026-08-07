@@ -5,7 +5,7 @@ Integrates all 9 Research Pipeline sub-modules (Search, Load, Chunk, Embed,
 VectorDB, Retrieve, Cite, Verify, Contradiction) into a cohesive service layer.
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from app.config.settings import Settings
 from app.core.logging import get_logger
@@ -21,11 +21,9 @@ from app.research.verification.source_verifier import SourceVerifier
 from app.schemas.research import (
     Citation,
     ContradictionResponse,
-    Document,
     IngestResponse,
     RetrievalResponse,
     SearchResponse,
-    SearchResult,
     SourceVerificationResponse,
 )
 
@@ -38,15 +36,15 @@ class ResearchPipelineService:
     def __init__(
         self,
         settings: Settings,
-        search_service: Optional[SearchService] = None,
-        document_loader: Optional[DocumentLoader] = None,
-        chunker: Optional[RecursiveChunker] = None,
-        embedding_service: Optional[EmbeddingService] = None,
-        vectordb_service: Optional[VectorDatabaseService] = None,
-        retriever: Optional[SemanticRetriever] = None,
-        citation_manager: Optional[CitationManager] = None,
-        source_verifier: Optional[SourceVerifier] = None,
-        contradiction_detector: Optional[ContradictionDetector] = None,
+        search_service: SearchService | None = None,
+        document_loader: DocumentLoader | None = None,
+        chunker: RecursiveChunker | None = None,
+        embedding_service: EmbeddingService | None = None,
+        vectordb_service: VectorDatabaseService | None = None,
+        retriever: SemanticRetriever | None = None,
+        citation_manager: CitationManager | None = None,
+        source_verifier: SourceVerifier | None = None,
+        contradiction_detector: ContradictionDetector | None = None,
     ) -> None:
         self.settings = settings
         self.search_service = search_service or SearchService(settings=settings)
@@ -71,8 +69,8 @@ class ResearchPipelineService:
         query: str,
         max_results: int = 5,
         search_depth: str = "basic",
-        include_domains: Optional[List[str]] = None,
-        exclude_domains: Optional[List[str]] = None,
+        include_domains: list[str] | None = None,
+        exclude_domains: list[str] | None = None,
     ) -> SearchResponse:
         """Execute web search using SearchService."""
         results = await self.search_service.search(
@@ -91,11 +89,11 @@ class ResearchPipelineService:
 
     async def ingest_document(
         self,
-        text: Optional[str] = None,
-        url: Optional[str] = None,
+        text: str | None = None,
+        url: str | None = None,
         file_name: str = "document.txt",
         file_type: str = "txt",
-        metadata: Optional[Dict[str, Any]] = None,
+        metadata: dict[str, Any] | None = None,
     ) -> IngestResponse:
         """Full pipeline: Load document → Chunk → Embed → Vector DB Insert."""
         logger.info("Ingesting document into research pipeline", file_name=file_name)
@@ -136,8 +134,8 @@ class ResearchPipelineService:
         )
 
     async def generate_embeddings_batch(
-        self, texts: List[str], provider: Optional[str] = None
-    ) -> tuple[List[List[float]], int, str]:
+        self, texts: list[str], provider: str | None = None
+    ) -> tuple[list[list[float]], int, str]:
         """Generate embeddings for a list of texts."""
         embeddings = await self.embedding_service.generate_embeddings(texts)
         return (
@@ -150,8 +148,8 @@ class ResearchPipelineService:
         self,
         query: str,
         top_k: int = 5,
-        session_id: Optional[str] = None,
-        filter_metadata: Optional[Dict[str, Any]] = None,
+        session_id: str | None = None,
+        filter_metadata: dict[str, Any] | None = None,
     ) -> RetrievalResponse:
         """Perform semantic search retrieval."""
         return await self.retriever.retrieve(
@@ -161,7 +159,7 @@ class ResearchPipelineService:
             filter_metadata=filter_metadata,
         )
 
-    async def get_citations(self, session_id: Optional[str] = None) -> List[Citation]:
+    async def get_citations(self, session_id: str | None = None) -> list[Citation]:
         """Generate structured citations from recent session results."""
         results = await self.retriever.retrieve(
             query="*", top_k=5, session_id=session_id
@@ -181,9 +179,9 @@ class ResearchPipelineService:
     async def verify_source(
         self,
         url: str,
-        domain: Optional[str] = None,
-        content_sample: Optional[str] = None,
-        published_date: Optional[str] = None,
+        domain: str | None = None,
+        content_sample: str | None = None,
+        published_date: str | None = None,
     ) -> SourceVerificationResponse:
         """Verify source reliability across 5 quality dimensions."""
         return self.source_verifier.verify_source(
@@ -194,7 +192,7 @@ class ResearchPipelineService:
         )
 
     async def detect_contradictions(
-        self, topic: str, evidence_texts: List[str]
+        self, topic: str, evidence_texts: list[str]
     ) -> ContradictionResponse:
         """Detect conflicting claims across evidence sources."""
         return self.contradiction_detector.detect_contradictions(

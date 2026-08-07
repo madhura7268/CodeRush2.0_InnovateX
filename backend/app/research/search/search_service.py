@@ -6,10 +6,10 @@ with automatic mock/fallback when API keys are unconfigured or requests fail.
 """
 
 from abc import ABC, abstractmethod
-from typing import List, Optional
 from urllib.parse import urlparse
 
 import httpx
+
 from app.config.settings import Settings
 from app.core.logging import get_logger
 from app.schemas.research import SearchResult
@@ -26,9 +26,9 @@ class ISearchProvider(ABC):
         query: str,
         max_results: int = 5,
         search_depth: str = "basic",
-        include_domains: Optional[List[str]] = None,
-        exclude_domains: Optional[List[str]] = None,
-    ) -> List[SearchResult]:
+        include_domains: list[str] | None = None,
+        exclude_domains: list[str] | None = None,
+    ) -> list[SearchResult]:
         """Perform search and return list of SearchResult objects."""
         ...
 
@@ -45,9 +45,9 @@ class TavilySearchProvider(ISearchProvider):
         query: str,
         max_results: int = 5,
         search_depth: str = "basic",
-        include_domains: Optional[List[str]] = None,
-        exclude_domains: Optional[List[str]] = None,
-    ) -> List[SearchResult]:
+        include_domains: list[str] | None = None,
+        exclude_domains: list[str] | None = None,
+    ) -> list[SearchResult]:
         if not self.api_key:
             raise ValueError("Tavily API key is empty.")
 
@@ -65,7 +65,7 @@ class TavilySearchProvider(ISearchProvider):
             resp.raise_for_status()
             data = resp.json()
 
-        results: List[SearchResult] = []
+        results: list[SearchResult] = []
         for item in data.get("results", []):
             url = item.get("url", "")
             domain = urlparse(url).netloc or "unknown"
@@ -90,12 +90,12 @@ class MockSearchProvider(ISearchProvider):
         query: str,
         max_results: int = 5,
         search_depth: str = "basic",
-        include_domains: Optional[List[str]] = None,
-        exclude_domains: Optional[List[str]] = None,
-    ) -> List[SearchResult]:
+        include_domains: list[str] | None = None,
+        exclude_domains: list[str] | None = None,
+    ) -> list[SearchResult]:
         logger.info("Using MockSearchProvider", query=query)
         mock_domains = ["arxiv.org", "nature.com", "sciencedirect.com", "mit.edu", "stanford.edu"]
-        results: List[SearchResult] = []
+        results: list[SearchResult] = []
         for i in range(1, min(max_results, 5) + 1):
             domain = mock_domains[(i - 1) % len(mock_domains)]
             results.append(
@@ -120,7 +120,7 @@ class SearchService:
     to MockSearchProvider on configuration or request errors.
     """
 
-    def __init__(self, settings: Settings, provider: Optional[ISearchProvider] = None) -> None:
+    def __init__(self, settings: Settings, provider: ISearchProvider | None = None) -> None:
         self.settings = settings
         if provider:
             self.provider = provider
@@ -135,9 +135,9 @@ class SearchService:
         query: str,
         max_results: int = 5,
         search_depth: str = "basic",
-        include_domains: Optional[List[str]] = None,
-        exclude_domains: Optional[List[str]] = None,
-    ) -> List[SearchResult]:
+        include_domains: list[str] | None = None,
+        exclude_domains: list[str] | None = None,
+    ) -> list[SearchResult]:
         """Search query with automatic fallback error handling."""
         logger.info("Search requested", query=query, max_results=max_results)
         try:
@@ -150,7 +150,7 @@ class SearchService:
             )
             logger.info("Search successful", results_count=len(results))
             return results
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             logger.warning("Primary search provider failed, using fallback", error=str(e))
             return await self.fallback_provider.search(
                 query=query,

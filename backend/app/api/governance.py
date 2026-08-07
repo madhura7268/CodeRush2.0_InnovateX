@@ -6,7 +6,6 @@ GET  /api/governance/audit/{id}      — Get governance audit log for a session
 GET  /api/governance/policies        — Get the active policy registry
 """
 
-from typing import List
 
 from fastapi import APIRouter, Query
 
@@ -34,14 +33,14 @@ async def check_action(
 
 @router.get(
     "/audit/{session_id}",
-    response_model=List[AuditLogEntry],
+    response_model=list[AuditLogEntry],
     summary="Get governance audit log",
 )
 async def get_audit_log(
     session_id: str,
     governance: GovernanceEngineDep,
     limit: int = Query(default=50, ge=1, le=500),
-) -> List[AuditLogEntry]:
+) -> list[AuditLogEntry]:
     """Retrieve the full governance audit trail for a research session."""
     return await governance.get_audit_log(session_id, limit=limit)
 

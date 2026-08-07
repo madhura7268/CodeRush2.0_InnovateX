@@ -7,7 +7,7 @@ fallback to ensure operational reliability.
 """
 
 import math
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from app.config.settings import Settings
 from app.core.logging import get_logger
@@ -24,15 +24,15 @@ except ImportError:
 class VectorDatabaseService:
     """ChromaDB Vector Store implementation with metadata filtering & fallback."""
 
-    def __init__(self, settings: Settings, collection_name: Optional[str] = None) -> None:
+    def __init__(self, settings: Settings, collection_name: str | None = None) -> None:
         self.settings = settings
         self.collection_name = collection_name or settings.CHROMA_COLLECTION_NAME
         self._chroma_client = None
         self._collection = None
 
         # Local in-memory fallback storage
-        self._in_memory_chunks: Dict[str, Chunk] = {}
-        self._in_memory_vectors: Dict[str, List[float]] = {}
+        self._in_memory_chunks: dict[str, Chunk] = {}
+        self._in_memory_vectors: dict[str, list[float]] = {}
 
         self._init_client()
 
@@ -51,7 +51,7 @@ class VectorDatabaseService:
                 )
                 logger.info("Connected to ChromaDB server", host=self.settings.CHROMA_HOST)
                 return
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001
                 logger.warning("Could not connect to ChromaDB server, using ephemeral client", error=str(e))
                 try:
                     self._chroma_client = chromadb.Client()
@@ -60,15 +60,15 @@ class VectorDatabaseService:
                         metadata={"hnsw:space": "cosine"},
                     )
                     return
-                except Exception as ex:
+                except Exception as ex:  # noqa: BLE001
                     logger.warning("Ephemeral ChromaDB client failed, using in-memory vector store", error=str(ex))
 
         logger.info("Using in-memory vector store fallback")
 
     async def insert_chunks(
         self,
-        chunks: List[Chunk],
-        embeddings: List[List[float]],
+        chunks: list[Chunk],
+        embeddings: list[list[float]],
     ) -> bool:
         """Insert chunk objects and their embeddings into vector store."""
         if not chunks or not embeddings:
@@ -99,7 +99,7 @@ class VectorDatabaseService:
                 )
                 logger.info("Chunks inserted into ChromaDB successfully")
                 return True
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001
                 logger.warning("ChromaDB insert failed, falling back to in-memory store", error=str(e))
 
         # Fallback in-memory storage
@@ -109,7 +109,7 @@ class VectorDatabaseService:
 
         return True
 
-    async def update_chunk(self, chunk: Chunk, embedding: List[float]) -> bool:
+    async def update_chunk(self, chunk: Chunk, embedding: list[float]) -> bool:
         """Update an existing chunk in the vector store."""
         return await self.insert_chunks([chunk], [embedding])
 
@@ -120,7 +120,7 @@ class VectorDatabaseService:
             try:
                 self._collection.delete(ids=[chunk_id])
                 return True
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001
                 logger.warning("ChromaDB delete failed", error=str(e))
 
         self._in_memory_chunks.pop(chunk_id, None)
@@ -129,10 +129,10 @@ class VectorDatabaseService:
 
     async def similarity_search(
         self,
-        query_embedding: List[float],
+        query_embedding: list[float],
         top_k: int = 5,
-        metadata_filter: Optional[Dict[str, Any]] = None,
-    ) -> List[Dict[str, Any]]:
+        metadata_filter: dict[str, Any] | None = None,
+    ) -> list[dict[str, Any]]:
         """
         Perform similarity search using query embedding vector.
 
@@ -149,7 +149,7 @@ class VectorDatabaseService:
                     where=where_filter,
                 )
 
-                output: List[Dict[str, Any]] = []
+                output: list[dict[str, Any]] = []
                 ids = results.get("ids", [[]])[0]
                 documents = results.get("documents", [[]])[0]
                 metadatas = results.get("metadatas", [[]])[0]
@@ -173,7 +173,7 @@ class VectorDatabaseService:
                         }
                     )
                 return output
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001
                 logger.warning("ChromaDB search failed, using in-memory similarity search", error=str(e))
 
         # In-memory cosine similarity search
@@ -181,12 +181,12 @@ class VectorDatabaseService:
 
     def _in_memory_cosine_search(
         self,
-        query_vec: List[float],
+        query_vec: list[float],
         top_k: int,
-        filter_meta: Optional[Dict[str, Any]],
-    ) -> List[Dict[str, Any]]:
+        filter_meta: dict[str, Any] | None,
+    ) -> list[dict[str, Any]]:
         """Compute cosine similarity over in-memory vector store."""
-        scored: List[tuple] = []
+        scored: list[tuple] = []
         q_norm = math.sqrt(sum(x * x for x in query_vec)) or 1.0
 
         for cid, vec in self._in_memory_vectors.items():
@@ -214,7 +214,7 @@ class VectorDatabaseService:
         # Sort by similarity score descending
         scored.sort(key=lambda x: x[0], reverse=True)
 
-        results: List[Dict[str, Any]] = []
+        results: list[dict[str, Any]] = []
         for sim_score, chunk in scored[:top_k]:
             results.append(
                 {

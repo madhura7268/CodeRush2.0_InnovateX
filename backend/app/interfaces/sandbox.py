@@ -21,7 +21,7 @@ Implementing this module:
 """
 
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 
 class ISandbox(ABC):
@@ -32,10 +32,10 @@ class ISandbox(ABC):
         self,
         code: str,
         language: str = "python",
-        timeout_seconds: Optional[int] = None,
-        environment_vars: Optional[Dict[str, str]] = None,
-        packages: Optional[List[str]] = None,
-    ) -> Dict[str, Any]:
+        timeout_seconds: int | None = None,
+        environment_vars: dict[str, str] | None = None,
+        packages: list[str] | None = None,
+    ) -> dict[str, Any]:
         """
         Execute code in an isolated Docker container.
 

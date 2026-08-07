@@ -8,7 +8,7 @@ Preserves page numbers, metadata, and cleans extracted text.
 import io
 import re
 import uuid
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from app.core.logging import get_logger
 from app.schemas.research import Document
@@ -55,7 +55,7 @@ class DocumentLoader:
         text: str,
         title: str = "Raw Document",
         file_type: str = "txt",
-        metadata: Optional[Dict[str, Any]] = None,
+        metadata: dict[str, Any] | None = None,
     ) -> Document:
         """Process raw string text (TXT or Markdown)."""
         logger.info("Loading document from raw text", title=title, file_type=file_type)
@@ -75,8 +75,8 @@ class DocumentLoader:
         self,
         html_content: str,
         title: str = "Web Page",
-        url: Optional[str] = None,
-        metadata: Optional[Dict[str, Any]] = None,
+        url: str | None = None,
+        metadata: dict[str, Any] | None = None,
     ) -> Document:
         """Extract clean text from HTML content using BeautifulSoup."""
         logger.info("Loading document from HTML", title=title, url=url)
@@ -105,11 +105,11 @@ class DocumentLoader:
         self,
         pdf_bytes: bytes,
         title: str = "Document.pdf",
-        metadata: Optional[Dict[str, Any]] = None,
+        metadata: dict[str, Any] | None = None,
     ) -> Document:
         """Extract text and page metadata from PDF using PyMuPDF (fitz)."""
         logger.info("Loading document from PDF bytes", title=title)
-        pages_text: List[str] = []
+        pages_text: list[str] = []
         page_count = 1
 
         if fitz:
@@ -139,7 +139,7 @@ class DocumentLoader:
         self,
         docx_bytes: bytes,
         title: str = "Document.docx",
-        metadata: Optional[Dict[str, Any]] = None,
+        metadata: dict[str, Any] | None = None,
     ) -> Document:
         """Extract text from DOCX bytes using python-docx."""
         logger.info("Loading document from DOCX bytes", title=title)
@@ -167,7 +167,7 @@ class DocumentLoader:
         self,
         csv_bytes: bytes,
         title: str = "Data.csv",
-        metadata: Optional[Dict[str, Any]] = None,
+        metadata: dict[str, Any] | None = None,
     ) -> Document:
         """Extract text from CSV bytes using pandas or built-in string reader."""
         logger.info("Loading document from CSV bytes", title=title)

@@ -9,9 +9,9 @@ Supports async & batch embedding requests.
 import hashlib
 import math
 from abc import ABC, abstractmethod
-from typing import List, Optional
 
 import httpx
+
 from app.config.settings import Settings
 from app.core.logging import get_logger
 
@@ -22,7 +22,7 @@ class IEmbeddingProvider(ABC):
     """Abstract contract for embedding providers."""
 
     @abstractmethod
-    async def embed_texts(self, texts: List[str]) -> List[List[float]]:
+    async def embed_texts(self, texts: list[str]) -> list[list[float]]:
         """Generate embedding vectors for a list of texts."""
         ...
 
@@ -55,7 +55,7 @@ class GeminiEmbeddingProvider(IEmbeddingProvider):
     def provider_name(self) -> str:
         return "gemini-text-embedding-004"
 
-    async def embed_texts(self, texts: List[str]) -> List[List[float]]:
+    async def embed_texts(self, texts: list[str]) -> list[list[float]]:
         if not self.api_key:
             raise ValueError("Google API key is empty.")
 
@@ -72,7 +72,7 @@ class GeminiEmbeddingProvider(IEmbeddingProvider):
             resp.raise_for_status()
             data = resp.json()
 
-        embeddings: List[List[float]] = []
+        embeddings: list[list[float]] = []
         for item in data.get("embeddings", []):
             embeddings.append(item.get("values", []))
 
@@ -96,12 +96,12 @@ class DeterministicFallbackEmbeddingProvider(IEmbeddingProvider):
     def provider_name(self) -> str:
         return "fallback-deterministic-768d"
 
-    async def embed_texts(self, texts: List[str]) -> List[List[float]]:
+    async def embed_texts(self, texts: list[str]) -> list[list[float]]:
         logger.info("Using FallbackEmbeddingProvider", batch_size=len(texts))
-        results: List[List[float]] = []
+        results: list[list[float]] = []
         for text in texts:
             # Generate deterministic 768 float values based on SHA-256 seed
-            vec: List[float] = []
+            vec: list[float] = []
             seed_bytes = hashlib.sha256(text.encode("utf-8")).digest()
             for i in range(768):
                 b = seed_bytes[i % len(seed_bytes)]
@@ -127,7 +127,7 @@ class EmbeddingService:
     def __init__(
         self,
         settings: Settings,
-        provider: Optional[IEmbeddingProvider] = None,
+        provider: IEmbeddingProvider | None = None,
     ) -> None:
         self.settings = settings
         if provider:
@@ -139,7 +139,7 @@ class EmbeddingService:
 
         self.fallback = DeterministicFallbackEmbeddingProvider()
 
-    async def generate_embeddings(self, texts: List[str]) -> List[List[float]]:
+    async def generate_embeddings(self, texts: list[str]) -> list[list[float]]:
         """Generate embeddings asynchronously for a batch of texts."""
         if not texts:
             return []
@@ -147,11 +147,11 @@ class EmbeddingService:
         logger.info("Generating embeddings", count=len(texts), provider=self.provider.provider_name)
         try:
             return await self.provider.embed_texts(texts)
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             logger.warning("Primary embedding provider failed, using fallback", error=str(e))
             return await self.fallback.embed_texts(texts)
 
-    async def generate_single_embedding(self, text: str) -> List[float]:
+    async def generate_single_embedding(self, text: str) -> list[float]:
         """Generate an embedding vector for a single text string."""
         vecs = await self.generate_embeddings([text])
         return vecs[0] if vecs else [0.0] * self.dimension

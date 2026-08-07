@@ -20,7 +20,8 @@ Implementing this module:
 """
 
 from abc import ABC, abstractmethod
-from typing import Any, AsyncGenerator, Dict
+from collections.abc import AsyncGenerator
+from typing import Any
 
 from app.schemas.planner import ResearchPlan, TaskStep
 
@@ -31,7 +32,7 @@ class IAgentOrchestrator(ABC):
     @abstractmethod
     async def execute_plan(
         self, plan: ResearchPlan, session_id: str
-    ) -> AsyncGenerator[Dict[str, Any], None]:
+    ) -> AsyncGenerator[dict[str, Any], None]:
         """
         Execute a research plan step by step.
 
@@ -54,7 +55,7 @@ class IAgentOrchestrator(ABC):
     @abstractmethod
     async def execute_step(
         self, step: TaskStep, session_id: str
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Execute a single task step.
 
@@ -68,7 +69,7 @@ class IAgentOrchestrator(ABC):
         ...
 
     @abstractmethod
-    async def get_agent_state(self, session_id: str) -> Dict[str, Any]:
+    async def get_agent_state(self, session_id: str) -> dict[str, Any]:
         """
         Retrieve the current state of the agent for a session.
 

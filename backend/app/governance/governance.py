@@ -22,8 +22,8 @@ Policy registry format (to be implemented as YAML or DB-driven config):
 """
 
 import uuid
-from datetime import datetime
-from typing import Any, Dict, List
+from datetime import datetime, timezone
+from typing import Any
 
 from app.config.settings import Settings
 from app.core.logging import get_logger
@@ -37,7 +37,7 @@ from app.schemas.governance import (
 
 logger = get_logger(__name__)
 
-_audit_log: List[AuditLogEntry] = []
+_audit_log: list[AuditLogEntry] = []
 
 
 class GovernanceEngine(IGovernanceEngine):
@@ -79,12 +79,12 @@ class GovernanceEngine(IGovernanceEngine):
 
     async def get_audit_log(
         self, session_id: str, limit: int = 50
-    ) -> List[AuditLogEntry]:
+    ) -> list[AuditLogEntry]:
         """TODO: Fetch from PostgreSQL audit_log table."""
         session_logs = [e for e in _audit_log if e.session_id == session_id]
         return sorted(session_logs, key=lambda e: e.timestamp, reverse=True)[:limit]
 
-    async def get_policy_registry(self) -> Dict[str, Any]:
+    async def get_policy_registry(self) -> dict[str, Any]:
         """TODO: Load from database or YAML config file."""
         return {
             "content_policy": {
@@ -119,6 +119,6 @@ class GovernanceEngine(IGovernanceEngine):
             verdict=result.verdict,
             matched_policies=result.matched_policies,
             reason=result.reason,
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(timezone.utc),
         )
         _audit_log.append(entry)

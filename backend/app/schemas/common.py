@@ -4,7 +4,6 @@ Common Pydantic schemas shared across multiple modules.
 
 from datetime import datetime
 from enum import Enum
-from typing import Optional
 
 from pydantic import BaseModel, Field
 
@@ -51,5 +50,5 @@ class ErrorResponse(BaseModel):
     success: bool = False
     error: str
     message: str
-    details: Optional[dict] = None
+    details: dict | None = None
     timestamp: datetime = Field(default_factory=datetime.utcnow)

@@ -6,7 +6,6 @@ differing numerical metrics, or opposing conclusions without discarding them.
 """
 
 import re
-from typing import List, Optional
 
 from app.core.logging import get_logger
 from app.schemas.research import ContradictionClaim, ContradictionResponse
@@ -27,8 +26,8 @@ class ContradictionDetector:
     def detect_contradictions(
         self,
         topic: str,
-        evidence_texts: List[str],
-        sources: Optional[List[str]] = None,
+        evidence_texts: list[str],
+        sources: list[str] | None = None,
     ) -> ContradictionResponse:
         """
         Analyze a list of evidence texts for conflicting statements.
@@ -42,7 +41,7 @@ class ContradictionDetector:
         )
 
         sources_list = sources or [f"Source #{i + 1}" for i in range(len(evidence_texts))]
-        claims: List[ContradictionClaim] = []
+        claims: list[ContradictionClaim] = []
 
         # Compare pairs of evidence texts
         for i in range(len(evidence_texts)):

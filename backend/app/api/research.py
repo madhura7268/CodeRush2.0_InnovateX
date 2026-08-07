@@ -16,7 +16,6 @@ Endpoints:
 - WS   /api/research/ws/{id}   — WebSocket live updates
 """
 
-from typing import List, Optional
 
 from fastapi import APIRouter, Query, WebSocket, WebSocketDisconnect
 
@@ -174,13 +173,13 @@ async def retrieve_semantic(
 
 @router.get(
     "/citations",
-    response_model=List[Citation],
+    response_model=list[Citation],
     summary="Generate citations",
 )
 async def get_citations(
     service: ResearchPipelineServiceDep,
-    session_id: Optional[str] = Query(default=None),
-) -> List[Citation]:
+    session_id: str | None = Query(default=None),
+) -> list[Citation]:
     """Retrieve structured citations for research findings."""
     return await service.get_citations(session_id=session_id)
 
@@ -193,7 +192,7 @@ async def get_citations(
 async def verify_source(
     service: ResearchPipelineServiceDep,
     url: str = Query(..., description="Target source URL to evaluate"),
-    domain: Optional[str] = Query(default=None),
+    domain: str | None = Query(default=None),
 ) -> SourceVerificationResponse:
     """Verify and score source authority, relevance, recency, domain reputation, and quality."""
     return await service.verify_source(url=url, domain=domain)

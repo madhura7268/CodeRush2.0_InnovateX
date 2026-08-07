@@ -22,7 +22,7 @@ Implementing this module:
 """
 
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List
+from typing import Any
 
 from app.schemas.governance import (
     AuditLogEntry,
@@ -75,7 +75,7 @@ class IGovernanceEngine(ABC):
     @abstractmethod
     async def get_audit_log(
         self, session_id: str, limit: int = 50
-    ) -> List[AuditLogEntry]:
+    ) -> list[AuditLogEntry]:
         """
         Retrieve the governance audit log for a session.
 
@@ -92,7 +92,7 @@ class IGovernanceEngine(ABC):
         ...
 
     @abstractmethod
-    async def get_policy_registry(self) -> Dict[str, Any]:
+    async def get_policy_registry(self) -> dict[str, Any]:
         """
         Return the current policy registry (all active policies and their rules).
 

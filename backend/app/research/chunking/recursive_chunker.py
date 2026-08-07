@@ -6,8 +6,8 @@ preserving paragraph and sentence boundaries where possible.
 Annotates every chunk with document_id, chunk_id, source, page_number, timestamp metadata.
 """
 
-from datetime import datetime
-from typing import Any, Dict, List, Optional
+from datetime import datetime, timezone
+from typing import Any
 
 from app.core.logging import get_logger
 from app.schemas.research import Chunk, Document
@@ -28,22 +28,22 @@ class RecursiveChunker:
         self,
         chunk_size: int = 1000,
         chunk_overlap: int = 200,
-        separators: Optional[List[str]] = None,
+        separators: list[str] | None = None,
     ) -> None:
         self.chunk_size = chunk_size
         self.chunk_overlap = chunk_overlap
         self.separators = separators or ["\n\n", "\n", ". ", "? ", "! ", " ", ""]
 
-    def _split_text(self, text: str, separators: List[str]) -> List[str]:
+    def _split_text(self, text: str, separators: list[str]) -> list[str]:
         """Recursively split text using the hierarchy of separators."""
-        final_chunks: List[str] = []
+        final_chunks: list[str] = []
 
         if not text:
             return final_chunks
 
         # Select current separator
         separator = separators[-1]
-        new_separators: List[str] = []
+        new_separators: list[str] = []
 
         for i, s in enumerate(separators):
             if s == "":
@@ -58,7 +58,7 @@ class RecursiveChunker:
         splits = text.split(separator) if separator != "" else list(text)
 
         # Merge splits into chunks respecting size & overlap
-        good_splits: List[str] = []
+        good_splits: list[str] = []
         for split in splits:
             if len(split) < self.chunk_size:
                 good_splits.append(split)
@@ -79,24 +79,23 @@ class RecursiveChunker:
 
         return final_chunks
 
-    def _merge_splits(self, splits: List[str], separator: str) -> List[str]:
+    def _merge_splits(self, splits: list[str], separator: str) -> list[str]:
         """Combine smaller splits into chunks of target chunk_size with overlap."""
-        docs: List[str] = []
-        current_doc: List[str] = []
+        docs: list[str] = []
+        current_doc: list[str] = []
         total = 0
 
         for d in splits:
             len_d = len(d)
-            if total + len_d + (len(separator) if current_doc else 0) > self.chunk_size:
-                if current_doc:
-                    doc_str = separator.join(current_doc)
-                    if doc_str.strip():
-                        docs.append(doc_str)
+            if total + len_d + (len(separator) if current_doc else 0) > self.chunk_size and current_doc:
+                doc_str = separator.join(current_doc)
+                if doc_str.strip():
+                    docs.append(doc_str)
 
-                    # Build overlap from trailing splits
-                    while total > self.chunk_overlap and current_doc:
-                        removed = current_doc.pop(0)
-                        total -= len(removed) + (len(separator) if current_doc else 0)
+                # Build overlap from trailing splits
+                while total > self.chunk_overlap and current_doc:
+                    removed = current_doc.pop(0)
+                    total -= len(removed) + (len(separator) if current_doc else 0)
 
             current_doc.append(d)
             total += len_d + (len(separator) if len(current_doc) > 1 else 0)
@@ -112,7 +111,7 @@ class RecursiveChunker:
         self,
         document: Document,
         default_page_number: int = 1,
-    ) -> List[Chunk]:
+    ) -> list[Chunk]:
         """
         Split a Document into chunk objects with complete metadata.
 
@@ -133,7 +132,7 @@ class RecursiveChunker:
         )
 
         raw_chunks = self._split_text(document.content, self.separators)
-        chunks: List[Chunk] = []
+        chunks: list[Chunk] = []
         char_pointer = 0
 
         for idx, text in enumerate(raw_chunks):
@@ -155,13 +154,13 @@ class RecursiveChunker:
             end_pos = start_pos + len(chunk_text)
             char_pointer = max(0, end_pos - self.chunk_overlap)
 
-            metadata: Dict[str, Any] = {
+            metadata: dict[str, Any] = {
                 **document.metadata,
                 "document_id": document.document_id,
                 "chunk_id": chunk_id,
                 "source": document.source_path_or_url or document.title,
                 "page_number": page_number,
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
                 "file_type": document.file_type,
             }
 
@@ -175,7 +174,7 @@ class RecursiveChunker:
                     end_char=end_pos,
                     source=document.source_path_or_url or document.title,
                     metadata=metadata,
-                    timestamp=datetime.utcnow(),
+                    timestamp=datetime.now(timezone.utc),
                 )
             )
 

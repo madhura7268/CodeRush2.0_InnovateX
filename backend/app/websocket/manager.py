@@ -12,7 +12,6 @@ Usage (from the orchestrator or research pipeline):
 
 import json
 from collections import defaultdict
-from typing import Dict, List, Set
 
 from fastapi import WebSocket
 
@@ -31,7 +30,7 @@ class WebSocketManager:
 
     def __init__(self) -> None:
         # Maps session_id -> set of active WebSocket connections
-        self._connections: Dict[str, Set[WebSocket]] = defaultdict(set)
+        self._connections: dict[str, set[WebSocket]] = defaultdict(set)
 
     async def connect(self, websocket: WebSocket, session_id: str) -> None:
         """Accept a WebSocket connection and register it for a session."""
@@ -61,13 +60,13 @@ class WebSocketManager:
         if session_id not in self._connections:
             return
 
-        disconnected: List[WebSocket] = []
+        disconnected: list[WebSocket] = []
         payload = json.dumps(message)
 
         for websocket in self._connections[session_id]:
             try:
                 await websocket.send_text(payload)
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001
                 logger.warning(
                     "Failed to send WebSocket message",
                     session_id=session_id,

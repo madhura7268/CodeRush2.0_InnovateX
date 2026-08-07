@@ -26,7 +26,7 @@ Usage:
     )
 """
 
-from typing import Any, Dict, Optional
+from typing import Any
 
 from fastapi import Request
 from fastapi.responses import JSONResponse
@@ -47,7 +47,7 @@ class AgentException(Exception):
         self,
         message: str,
         status_code: int = 500,
-        details: Optional[Dict[str, Any]] = None,
+        details: dict[str, Any] | None = None,
     ) -> None:
         super().__init__(message)
         self.message = message
@@ -72,7 +72,7 @@ class GovernanceViolationException(AgentException):
         policy: str,
         action: str,
         reason: str,
-        session_id: Optional[str] = None,
+        session_id: str | None = None,
     ) -> None:
         super().__init__(
             message=f"Governance violation: action '{action}' blocked by policy '{policy}'.",
@@ -95,18 +95,16 @@ class GovernanceViolationException(AgentException):
 class ResearchException(AgentException):
     """Raised when the research pipeline encounters an unrecoverable error."""
 
-    def __init__(self, message: str, session_id: Optional[str] = None) -> None:
+    def __init__(self, message: str, session_id: str | None = None) -> None:
         super().__init__(message, 500, {"session_id": session_id})
 
 
 class PlannerException(ResearchException):
     """Raised when the planner fails to generate or validate a research plan."""
-    pass
 
 
 class OrchestratorException(ResearchException):
     """Raised when the agent orchestrator encounters an error during execution."""
-    pass
 
 
 # ---------------------------------------------------------------------------
@@ -115,14 +113,14 @@ class OrchestratorException(ResearchException):
 class SandboxException(AgentException):
     """Raised when the Docker sandbox encounters an error."""
 
-    def __init__(self, message: str, container_id: Optional[str] = None) -> None:
+    def __init__(self, message: str, container_id: str | None = None) -> None:
         super().__init__(message, 500, {"container_id": container_id})
 
 
 class SandboxTimeoutException(SandboxException):
     """Raised when a sandbox execution exceeds the allowed time limit."""
 
-    def __init__(self, timeout_seconds: int, container_id: Optional[str] = None) -> None:
+    def __init__(self, timeout_seconds: int, container_id: str | None = None) -> None:
         super().__init__(
             message=f"Sandbox execution timed out after {timeout_seconds}s.",
             container_id=container_id,
@@ -135,12 +133,10 @@ class SandboxTimeoutException(SandboxException):
 # ---------------------------------------------------------------------------
 class MemoryException(AgentException):
     """Raised when the memory/RAG module encounters an error."""
-    pass
 
 
 class EvaluationException(AgentException):
     """Raised when the evaluation module cannot score a result."""
-    pass
 
 
 class ResourceNotFoundException(AgentException):

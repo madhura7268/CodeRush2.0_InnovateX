@@ -19,7 +19,7 @@ Implementing this module:
 """
 
 from abc import ABC, abstractmethod
-from typing import AsyncGenerator
+from collections.abc import AsyncGenerator
 
 from app.schemas.research import (
     ResearchRequest,

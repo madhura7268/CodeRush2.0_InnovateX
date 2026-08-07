@@ -5,7 +5,6 @@ GET /api/evaluation/{session_id}         — Get the latest evaluation result
 GET /api/evaluation/{session_id}/history — Get all evaluation results across iterations
 """
 
-from typing import List
 
 from fastapi import APIRouter
 
@@ -48,12 +47,12 @@ async def get_evaluation(
 
 @router.get(
     "/{session_id}/history",
-    response_model=List[IterationEvaluation],
+    response_model=list[IterationEvaluation],
     summary="Get evaluation history for all iterations",
 )
 async def get_evaluation_history(
     session_id: str,
     evaluation: EvaluationDep,
-) -> List[IterationEvaluation]:
+) -> list[IterationEvaluation]:
     """Retrieve evaluation scores across all iterations for trend analysis."""
     return await evaluation.get_iteration_history(session_id)

@@ -16,7 +16,7 @@ TODO: Implement using Docker SDK:
     )
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from app.config.settings import Settings
 from app.core.logging import get_logger
@@ -42,10 +42,10 @@ class SandboxExecutor(ISandbox):
         self,
         code: str,
         language: str = "python",
-        timeout_seconds: Optional[int] = None,
-        environment_vars: Optional[Dict[str, str]] = None,
-        packages: Optional[List[str]] = None,
-    ) -> Dict[str, Any]:
+        timeout_seconds: int | None = None,
+        environment_vars: dict[str, str] | None = None,
+        packages: list[str] | None = None,
+    ) -> dict[str, Any]:
         """TODO: Execute code in an isolated Docker container."""
         logger.info("Code execution requested (placeholder)", language=language)
         # Simulate code execution result

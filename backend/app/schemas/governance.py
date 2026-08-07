@@ -6,7 +6,7 @@ Pydantic models for policy checks and audit logging.
 
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -32,13 +32,13 @@ class PolicyCheckRequest(BaseModel):
         ...,
         description="The type of action (e.g., 'web_search', 'execute_code', 'store_data').",
     )
-    action_params: Dict[str, Any] = Field(
+    action_params: dict[str, Any] = Field(
         default_factory=dict,
         description="Parameters of the action being checked.",
     )
     session_id: str = Field(..., description="The research session this action belongs to.")
-    step_id: Optional[str] = Field(default=None, description="The step requesting this action.")
-    context: Optional[str] = Field(
+    step_id: str | None = Field(default=None, description="The step requesting this action.")
+    context: str | None = Field(
         default=None,
         description="Additional context about why this action is needed.",
     )
@@ -49,12 +49,12 @@ class PolicyCheckResult(BaseModel):
 
     allowed: bool
     verdict: PolicyVerdictType
-    matched_policies: List[str] = Field(
+    matched_policies: list[str] = Field(
         default_factory=list,
         description="Names of policies that were triggered.",
     )
     reason: str = Field(..., description="Human-readable explanation of the verdict.")
-    warnings: List[str] = Field(
+    warnings: list[str] = Field(
         default_factory=list,
         description="Non-blocking warnings for the operator.",
     )
@@ -66,10 +66,10 @@ class AuditLogEntry(BaseModel):
 
     log_id: str
     session_id: str
-    step_id: Optional[str] = None
+    step_id: str | None = None
     action_type: str
-    action_params: Dict[str, Any]
+    action_params: dict[str, Any]
     verdict: PolicyVerdictType
-    matched_policies: List[str]
+    matched_policies: list[str]
     reason: str
     timestamp: datetime = Field(default_factory=datetime.utcnow)

@@ -5,7 +5,7 @@ Pydantic models for research plans and task steps.
 """
 
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -20,11 +20,11 @@ class TaskStep(BaseModel):
     title: str = Field(..., description="Short title for this step.")
     description: str = Field(..., description="Detailed description of what this step does.")
     tool: ToolType = Field(..., description="Which tool will execute this step.")
-    parameters: Dict[str, Any] = Field(
+    parameters: dict[str, Any] = Field(
         default_factory=dict,
         description="Tool-specific parameters (e.g., search query, code snippet).",
     )
-    dependencies: List[str] = Field(
+    dependencies: list[str] = Field(
         default_factory=list,
         description="step_ids that must complete before this step runs.",
     )
@@ -33,10 +33,10 @@ class TaskStep(BaseModel):
         description="What constitutes a successful completion of this step.",
     )
     status: StepStatus = StepStatus.PENDING
-    result: Optional[Dict[str, Any]] = None
-    started_at: Optional[datetime] = None
-    completed_at: Optional[datetime] = None
-    error_message: Optional[str] = None
+    result: dict[str, Any] | None = None
+    started_at: datetime | None = None
+    completed_at: datetime | None = None
+    error_message: str | None = None
 
 
 class ResearchPlan(BaseModel):
@@ -48,7 +48,7 @@ class ResearchPlan(BaseModel):
     objective: str = Field(
         ..., description="High-level statement of what the plan aims to achieve."
     )
-    steps: List[TaskStep] = Field(..., description="Ordered list of task steps.")
+    steps: list[TaskStep] = Field(..., description="Ordered list of task steps.")
     iteration: int = Field(
         default=1, description="Which iteration this plan belongs to (1 = first)."
     )
@@ -56,9 +56,9 @@ class ResearchPlan(BaseModel):
         default="",
         description="Explanation of why the planner chose this strategy.",
     )
-    estimated_duration_minutes: Optional[int] = None
+    estimated_duration_minutes: int | None = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
-    adapted_from_plan_id: Optional[str] = Field(
+    adapted_from_plan_id: str | None = Field(
         default=None,
         description="If this plan was adapted from a previous one, the original plan_id.",
     )

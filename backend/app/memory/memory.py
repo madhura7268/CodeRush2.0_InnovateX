@@ -25,7 +25,7 @@ TODO: Implement using ChromaDB:
 """
 
 import uuid
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from app.config.settings import Settings
 from app.core.logging import get_logger
@@ -33,8 +33,8 @@ from app.interfaces.memory import IMemory
 
 logger = get_logger(__name__)
 
-_memory_store: List[Dict] = []
-_session_states: Dict[str, Dict] = {}
+_memory_store: list[dict] = []
+_session_states: dict[str, dict] = {}
 
 
 class MemoryService(IMemory):
@@ -51,7 +51,7 @@ class MemoryService(IMemory):
     async def store(
         self,
         content: str,
-        metadata: Dict[str, Any],
+        metadata: dict[str, Any],
         session_id: str,
         memory_type: str = "long_term",
     ) -> str:
@@ -69,10 +69,10 @@ class MemoryService(IMemory):
     async def retrieve(
         self,
         query: str,
-        session_id: Optional[str] = None,
+        session_id: str | None = None,
         top_k: int = 5,
         memory_type: str = "long_term",
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """TODO: Query ChromaDB with embedding similarity search."""
         logger.info("Memory retrieval requested (placeholder)", query=query)
         results = _memory_store
@@ -80,7 +80,7 @@ class MemoryService(IMemory):
             results = [d for d in results if d["metadata"].get("session_id") == session_id]
         return results[:top_k]
 
-    async def get_session_context(self, session_id: str) -> Dict[str, Any]:
+    async def get_session_context(self, session_id: str) -> dict[str, Any]:
         """TODO: Compile full session context from short-term memory for LLM prompts."""
         return _session_states.get(session_id, {
             "session_id": session_id,
@@ -96,7 +96,7 @@ class MemoryService(IMemory):
         _session_states.pop(session_id, None)
 
     async def update_session_state(
-        self, session_id: str, state_update: Dict[str, Any]
+        self, session_id: str, state_update: dict[str, Any]
     ) -> None:
         """TODO: Update short-term memory / session context."""
         if session_id not in _session_states:

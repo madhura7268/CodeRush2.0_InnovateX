@@ -5,7 +5,7 @@ GET /api/health — Returns service health status.
 Used by Docker Compose health checks, load balancers, and monitoring tools.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 from fastapi import APIRouter
 from pydantic import BaseModel
@@ -38,7 +38,7 @@ async def health_check() -> HealthResponse:
         status="healthy",
         version=settings.APP_VERSION,
         environment=settings.APP_ENV,
-        timestamp=datetime.utcnow(),
+        timestamp=datetime.now(timezone.utc),
         services={
             "api": "healthy",
             "database": "not_configured",   # Update when DB layer is implemented

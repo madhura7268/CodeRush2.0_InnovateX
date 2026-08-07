@@ -19,7 +19,8 @@ LangGraph skeleton:
     graph.add_conditional_edges("governance_check", route_by_verdict)
 """
 
-from typing import Any, AsyncGenerator, Dict
+from collections.abc import AsyncGenerator
+from typing import Any
 
 from app.config.settings import Settings
 from app.core.logging import get_logger
@@ -43,7 +44,7 @@ class AgentOrchestrator(IAgentOrchestrator):
 
     async def execute_plan(
         self, plan: ResearchPlan, session_id: str
-    ) -> AsyncGenerator[Dict[str, Any], None]:
+    ) -> AsyncGenerator[dict[str, Any], None]:
         """TODO: Execute plan via LangGraph StateGraph with streaming."""
         logger.info("Executing plan (placeholder)", session_id=session_id)
         for step in plan.steps:
@@ -64,7 +65,7 @@ class AgentOrchestrator(IAgentOrchestrator):
 
     async def execute_step(
         self, step: TaskStep, session_id: str
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """TODO: Route step to correct tool after governance check."""
         logger.info("Executing step (placeholder)", step_id=step.step_id, tool=step.tool)
         return {
@@ -75,7 +76,7 @@ class AgentOrchestrator(IAgentOrchestrator):
             "duration_ms": 0,
         }
 
-    async def get_agent_state(self, session_id: str) -> Dict[str, Any]:
+    async def get_agent_state(self, session_id: str) -> dict[str, Any]:
         """TODO: Return LangGraph checkpoint state from PostgreSQL."""
         return {
             "session_id": session_id,

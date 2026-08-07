@@ -33,7 +33,6 @@ from app.interfaces.governance import IGovernanceEngine
 from app.interfaces.memory import IMemory
 from app.interfaces.orchestrator import IAgentOrchestrator
 from app.interfaces.planner import IPlanner
-from app.interfaces.report import IReportGenerator
 from app.interfaces.research import IResearchPipeline
 from app.memory.memory import MemoryService
 from app.orchestrator.orchestrator import AgentOrchestrator

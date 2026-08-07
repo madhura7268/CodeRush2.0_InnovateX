@@ -288,3 +288,17 @@ class ResearchResult(BaseModel):
     overall_confidence: float = Field(ge=0.0, le=100.0)
     report_id: str | None = None
     completed_at: datetime | None = None
+
+
+class ResearchHistoryItem(BaseModel):
+    """A single research session entry in the history list."""
+
+    session_id: str
+    question: str
+    date: str
+    status: SessionStatus
+    iterations: int
+    sources_count: int
+    overall_confidence: float
+    tags: list[str] = Field(default_factory=list)
+

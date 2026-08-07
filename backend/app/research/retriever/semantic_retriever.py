@@ -66,7 +66,10 @@ class SemanticRetriever:
         retrieved_chunks: list[RetrievedChunk] = []
         for res in raw_results:
             source_url = res.get("source", "https://example.com/source")
-            domain = urlparse(source_url).netloc or "example.com"
+            try:
+                domain = urlparse(source_url).netloc or "example.com"
+            except ValueError:
+                domain = "example.com"
 
             chunk_obj = Chunk(
                 chunk_id=res["chunk_id"],

@@ -24,5 +24,5 @@ async def test_report_generator():
     
     assert report.session_id == "test-session"
     assert report.question == "What is quantum computing?"
-    assert report.overall_confidence == 0.85
+    assert report.overall_confidence == 85.0
     assert "quantum computing" in report.executive_summary.lower()

@@ -103,6 +103,8 @@ class ResearchPipelineService:
             doc = await self.document_loader.load_from_text(
                 text=text, title=file_name, file_type=file_type, metadata=metadata
             )
+            if url:
+                doc.source_path_or_url = url
         elif url:
             # Simple HTTP fetch placeholder or HTML parse
             doc = await self.document_loader.load_from_html(

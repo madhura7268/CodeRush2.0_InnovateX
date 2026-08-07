@@ -33,6 +33,7 @@ from app.schemas.research import (
     ResearchRequest,
     ResearchResult,
     ResearchSessionStatus,
+    ResearchHistoryItem,
     RetrievalResponse,
     RetrieveRequest,
     SearchRequest,
@@ -56,7 +57,8 @@ async def start_research(
     request: ResearchRequest,
     pipeline: ResearchPipelineDep,
 ) -> dict:
-    """Submit a research question and start an autonomous research session."""
+    """Start an autonomous research session asynchronously."""
+    logger.info("STAGE: POST /api/research - Starting research session", question=request.question)
     session_id = await pipeline.start_research(request)
     return {
         "success": True,
@@ -93,6 +95,18 @@ async def research_pipeline_health(
             "contradiction_detector": "active",
         },
     }
+
+
+@router.get(
+    "/history",
+    response_model=list[ResearchHistoryItem],
+    summary="Get research session history",
+)
+async def get_research_history(
+    pipeline: ResearchPipelineDep,
+) -> list[ResearchHistoryItem]:
+    """Retrieve history of all research sessions."""
+    return await pipeline.get_history()
 
 
 @router.post(

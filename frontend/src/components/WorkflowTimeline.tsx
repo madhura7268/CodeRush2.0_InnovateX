@@ -13,6 +13,7 @@ import { CheckCircle2, Clock, Loader2, XCircle, Sparkles, ArrowRight, RefreshCw,
 import { MOCK_WORKFLOW_NODES } from '@/services/mockData'
 import type { StepStatus, WorkflowNode } from '@/types'
 import clsx from 'clsx'
+import { useAgent } from '@/contexts/AgentContext'
 
 interface WorkflowTimelineProps {
   nodes?: WorkflowNode[]
@@ -38,7 +39,99 @@ export default function WorkflowTimeline({
   confidenceScore = 86.5,
   confidenceThreshold = 80,
 }: WorkflowTimelineProps) {
-  const isThresholdMet = confidenceScore >= confidenceThreshold
+  const { state } = useAgent()
+  const { activeSession } = state
+
+  const hasRealSession = !!activeSession
+  const currentStatus = activeSession?.status || 'pending'
+  const currentStep = activeSession?.current_step || ''
+
+  const getStageStatus = (stageId: string): StepStatus => {
+    if (!hasRealSession) {
+      return 'pending'
+    }
+    if (currentStatus === 'completed') {
+      if (stageId === 'IMPROVE_STRATEGY') return 'skipped'
+      return 'completed'
+    }
+    if (currentStatus === 'failed') {
+      return 'failed'
+    }
+
+    switch (stageId) {
+      case 'START':
+        return 'completed'
+      case 'PLANNER':
+        if (currentStatus === 'planning') return 'running'
+        return 'completed'
+      case 'RESEARCH':
+      case 'BROWSER_SEARCH':
+        if (currentStatus === 'planning' || currentStatus === 'pending') return 'pending'
+        if (currentStatus === 'running') {
+          if (currentStep.toLowerCase().includes('search') || currentStep.toLowerCase().includes('browser')) return 'running'
+          if (currentStep.toLowerCase().includes('memory') || currentStep.toLowerCase().includes('eval') || currentStep.toLowerCase().includes('analy')) return 'completed'
+        }
+        if (currentStatus === 'evaluating') return 'completed'
+        return 'pending'
+      case 'RAG':
+        if (currentStatus === 'planning' || currentStatus === 'pending') return 'pending'
+        if (currentStatus === 'running') {
+          if (currentStep.toLowerCase().includes('memory') || currentStep.toLowerCase().includes('store')) return 'running'
+          if (currentStep.toLowerCase().includes('eval') || currentStep.toLowerCase().includes('analy')) return 'completed'
+        }
+        if (currentStatus === 'evaluating') return 'completed'
+        return 'pending'
+      case 'ANALYZER':
+        if (currentStatus === 'planning' || currentStatus === 'pending') return 'pending'
+        if (currentStatus === 'running') {
+          if (currentStep.toLowerCase().includes('analyze') || currentStep.toLowerCase().includes('synthesis')) return 'running'
+          if (currentStep.toLowerCase().includes('eval')) return 'completed'
+        }
+        if (currentStatus === 'evaluating') return 'completed'
+        return 'pending'
+      case 'EVALUATOR':
+        if (currentStatus === 'evaluating') return 'running'
+        if (currentStatus === 'running' && currentStep.toLowerCase().includes('eval')) return 'running'
+        return 'pending'
+      case 'CONFIDENCE_CHECK':
+        return 'pending'
+      case 'IMPROVE_STRATEGY':
+        return 'pending'
+      case 'REPORT':
+        return 'pending'
+      default:
+        return 'pending'
+    }
+  }
+
+  const finalNodes = nodes !== MOCK_WORKFLOW_NODES ? nodes : (
+    hasRealSession
+      ? MOCK_WORKFLOW_NODES.map((node) => {
+          const status = getStageStatus(node.id)
+          let metrics = undefined
+          if (node.id === 'PLANNER' && status === 'completed') {
+            metrics = '3 steps planned'
+          } else if (node.id === 'RESEARCH' && status === 'completed') {
+            metrics = 'Web search done'
+          } else if (node.id === 'RAG' && status === 'running') {
+            metrics = 'Vector DB...'
+          } else if (node.id === 'EVALUATOR' && status === 'running') {
+            metrics = 'Scoring findings...'
+          }
+          return { ...node, status, metrics }
+        })
+      : MOCK_WORKFLOW_NODES.map((node) => ({ ...node, status: 'pending' as StepStatus, metrics: undefined }))
+  )
+
+  const finalConfidenceScore = hasRealSession
+    ? (currentStatus === 'completed' ? 85.0 : 0.0)
+    : confidenceScore
+
+  const finalConfidenceThreshold = hasRealSession
+    ? activeSession.confidence_threshold
+    : confidenceThreshold
+
+  const isThresholdMet = finalConfidenceScore >= finalConfidenceThreshold
 
   return (
     <div className="p-6 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-6">
@@ -70,7 +163,7 @@ export default function WorkflowTimeline({
       {/* Main Flow Nodes Horizontal / Grid Container */}
       <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 overflow-x-auto">
         <div className="flex items-center min-w-[760px] justify-between gap-2 py-2">
-          {nodes
+          {finalNodes
             .filter((n) => !['IMPROVE_STRATEGY', 'REPORT'].includes(n.id))
             .map((node, idx, arr) => {
               const isRunning = node.status === 'running'
@@ -146,9 +239,9 @@ export default function WorkflowTimeline({
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-bold text-slate-900">Confidence ≥ {confidenceThreshold}%</span>
+                  <span className="text-xs font-bold text-slate-900">Confidence ≥ {finalConfidenceThreshold}%</span>
                   <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800">
-                    Passed ({confidenceScore}%)
+                    Passed ({finalConfidenceScore}%)
                   </span>
                 </div>
                 <p className="text-xs text-slate-500 mt-0.5">
@@ -174,7 +267,7 @@ export default function WorkflowTimeline({
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-bold text-slate-900">Confidence &lt; {confidenceThreshold}%</span>
+                  <span className="text-xs font-bold text-slate-900">Confidence &lt; {finalConfidenceThreshold}%</span>
                   <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-blue-100 text-blue-800">
                     Self-Improve Loop
                   </span>

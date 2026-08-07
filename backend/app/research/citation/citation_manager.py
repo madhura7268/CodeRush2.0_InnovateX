@@ -28,7 +28,10 @@ class CitationManager:
         confidence_score: float = 0.85,
     ) -> Citation:
         """Create a single structured Citation object."""
-        domain = urlparse(url).netloc or "local_source"
+        try:
+            domain = urlparse(url).netloc or "local_source"
+        except ValueError:
+            domain = "local_source"
         if not url.startswith(("http://", "https://", "file://")):
             url = f"https://{url}" if domain != "local_source" else f"file:///{url}"
 

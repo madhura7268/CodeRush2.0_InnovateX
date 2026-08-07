@@ -21,7 +21,7 @@ from app.interfaces.memory import IMemory
 from app.interfaces.report import IReportGenerator
 from app.websocket.manager import WebSocketManager
 from app.schemas.common import SessionStatus
-from app.schemas.research import ResearchRequest, ResearchResult, ResearchSessionStatus
+from app.schemas.research import ResearchRequest, ResearchResult, ResearchSessionStatus, ResearchHistoryItem
 
 logger = get_logger(__name__)
 
@@ -56,6 +56,38 @@ class ResearchPipeline(IResearchPipeline):
         self.ws_manager = ws_manager
         logger.info("ResearchPipeline fully initialized with active sub-services")
 
+    async def get_history(self) -> list[ResearchHistoryItem]:
+        """
+        Retrieve history of all research sessions.
+        """
+        history = []
+        for session_id, session in _sessions.items():
+            context = await self.memory.get_session_context(session_id)
+            overall_confidence = context.get("overall_confidence", 0.0) * 100.0
+
+            # Count unique sources from citations in findings
+            citations = []
+            for finding in context.get("findings", []):
+                citations.extend(finding.citations)
+            unique_urls = {c.url for c in citations}
+            sources_count = len(unique_urls)
+
+            history.append(
+                ResearchHistoryItem(
+                    session_id=session_id,
+                    question=session["question"],
+                    date=session["created_at"].strftime("%Y-%m-%d %H:%M"),
+                    status=session["status"],
+                    iterations=session["current_iteration"],
+                    sources_count=sources_count,
+                    overall_confidence=overall_confidence,
+                    tags=session.get("tags", []),
+                )
+            )
+        # Sort by date descending
+        history.sort(key=lambda x: x.date, reverse=True)
+        return history
+
     async def start_research(self, request: ResearchRequest) -> str:
         """
         Start an autonomous research session asynchronously.
@@ -73,6 +105,7 @@ class ResearchPipeline(IResearchPipeline):
             "created_at": datetime.now(timezone.utc),
             "updated_at": datetime.now(timezone.utc),
             "current_step": None,
+            "tags": request.tags or [],
         }
 
         # 2. Store session details in memory

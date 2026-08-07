@@ -47,7 +47,7 @@ export default function ResearchForm() {
     await startResearch({
       question: question.trim(),
       max_iterations: config.max_iterations,
-      confidence_threshold: config.confidence_threshold,
+      confidence_threshold: config.confidence_threshold / 100,
       research_depth: config.research_depth,
       enable_web_search: config.enable_web_search,
       enable_browser: config.enable_browser,

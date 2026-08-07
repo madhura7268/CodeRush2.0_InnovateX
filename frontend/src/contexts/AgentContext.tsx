@@ -207,6 +207,42 @@ export function AgentProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
+  // Manage WebSocket connection lifecycle based on active session ID
+  useEffect(() => {
+    if (state.activeSessionId) {
+      webSocketService.connect(state.activeSessionId)
+    } else {
+      webSocketService.disconnect()
+    }
+    return () => {
+      webSocketService.disconnect()
+    }
+  }, [state.activeSessionId])
+
+  // Poll active session status dynamically while active session is running
+  useEffect(() => {
+    if (!state.activeSessionId) return
+
+    const fetchStatus = () => {
+      api.research
+        .getStatus(state.activeSessionId!)
+        .then((status) => {
+          dispatch({ type: 'UPDATE_SESSION_STATUS', payload: status })
+          
+          api.research
+            .getHistory()
+            .then((history) => dispatch({ type: 'SET_HISTORY', payload: history }))
+            .catch(() => {})
+        })
+        .catch(() => {})
+    }
+
+    fetchStatus()
+
+    const interval = setInterval(fetchStatus, 2000)
+    return () => clearInterval(interval)
+  }, [state.activeSessionId, dispatch])
+
   return (
     <AgentContext.Provider value={{ state, dispatch }}>
       {children}

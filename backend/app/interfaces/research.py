@@ -25,11 +25,22 @@ from app.schemas.research import (
     ResearchRequest,
     ResearchResult,
     ResearchSessionStatus,
+    ResearchHistoryItem,
 )
 
 
 class IResearchPipeline(ABC):
     """Abstract interface for the end-to-end research pipeline."""
+
+    @abstractmethod
+    async def get_history(self) -> list[ResearchHistoryItem]:
+        """
+        Retrieve history of all research sessions.
+
+        Returns:
+            list[ResearchHistoryItem]
+        """
+        ...
 
     @abstractmethod
     async def start_research(self, request: ResearchRequest) -> str:

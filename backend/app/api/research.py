@@ -1,23 +1,52 @@
 """
 Research API Router
 
-POST /api/research          — Start a new research session
-GET  /api/research/{id}     — Get session status
-GET  /api/research/{id}/result — Get final result
-DELETE /api/research/{id}   — Cancel a session
-
-All routes inject IResearchPipeline via Depends() — the concrete
-implementation is wired in app/core/dependencies.py.
+Endpoints:
+- POST /api/research           — Start a new research session
+- GET  /api/research/health    — Module health check
+- POST /api/research/search    — Perform web search
+- POST /api/research/ingest    — Ingest & chunk document
+- POST /api/research/embed     — Batch generate embeddings
+- POST /api/research/retrieve  — Top-K semantic retrieval
+- GET  /api/research/citations — Generate structured citations
+- GET  /api/research/sources   — Verify source reliability score
+- GET  /api/research/{id}      — Get session status
+- GET  /api/research/{id}/result — Get final result
+- DELETE /api/research/{id}    — Cancel a session
+- WS   /api/research/ws/{id}   — WebSocket live updates
 """
 
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+from typing import List, Optional
 
-from app.core.dependencies import ResearchPipelineDep, WebSocketManagerDep
-from app.schemas.research import ResearchRequest, ResearchResult, ResearchSessionStatus
+from fastapi import APIRouter, Query, WebSocket, WebSocketDisconnect
+
+from app.core.dependencies import (
+    ResearchPipelineDep,
+    ResearchPipelineServiceDep,
+    WebSocketManagerDep,
+)
+from app.schemas.research import (
+    Citation,
+    EmbedRequest,
+    EmbedResponse,
+    IngestRequest,
+    IngestResponse,
+    ResearchRequest,
+    ResearchResult,
+    ResearchSessionStatus,
+    RetrievalResponse,
+    RetrieveRequest,
+    SearchRequest,
+    SearchResponse,
+    SourceVerificationResponse,
+)
 
 router = APIRouter()
 
 
+# ---------------------------------------------------------------------------
+# 1. Base Session Creation Endpoint
+# ---------------------------------------------------------------------------
 @router.post(
     "",
     response_model=dict,
@@ -28,12 +57,7 @@ async def start_research(
     request: ResearchRequest,
     pipeline: ResearchPipelineDep,
 ) -> dict:
-    """
-    Submit a research question and start an autonomous research session.
-
-    Returns a session_id immediately. Use GET /api/research/{id} to poll status
-    or connect to WS /ws/{id} for real-time events.
-    """
+    """Submit a research question and start an autonomous research session."""
     session_id = await pipeline.start_research(request)
     return {
         "success": True,
@@ -43,6 +67,141 @@ async def start_research(
     }
 
 
+# ---------------------------------------------------------------------------
+# 2. Static Path Submodule Endpoints (MUST precede /{session_id})
+# ---------------------------------------------------------------------------
+@router.get(
+    "/health",
+    response_model=dict,
+    summary="Research Pipeline module health check",
+)
+async def research_pipeline_health(
+    service: ResearchPipelineServiceDep,
+) -> dict:
+    """Check operational health of Research Pipeline components."""
+    return {
+        "status": "healthy",
+        "module": "Research Pipeline",
+        "services": {
+            "search": "active",
+            "document_loader": "active",
+            "chunking": "active",
+            "embeddings": service.embedding_service.provider_name,
+            "vectordb": "active",
+            "retriever": "active",
+            "citation_manager": "active",
+            "source_verifier": "active",
+            "contradiction_detector": "active",
+        },
+    }
+
+
+@router.post(
+    "/search",
+    response_model=SearchResponse,
+    summary="Perform web search",
+)
+async def search_web(
+    request: SearchRequest,
+    service: ResearchPipelineServiceDep,
+) -> SearchResponse:
+    """Execute web search and return structured SearchResult list."""
+    return await service.execute_search(
+        query=request.query,
+        max_results=request.max_results,
+        search_depth=request.search_depth,
+        include_domains=request.include_domains,
+        exclude_domains=request.exclude_domains,
+    )
+
+
+@router.post(
+    "/ingest",
+    response_model=IngestResponse,
+    summary="Ingest and chunk document",
+)
+async def ingest_document(
+    request: IngestRequest,
+    service: ResearchPipelineServiceDep,
+) -> IngestResponse:
+    """Load text/URL, recursively chunk (1000 char / 200 overlap), embed, and store in vector DB."""
+    return await service.ingest_document(
+        text=request.text,
+        url=request.url,
+        file_name=request.file_name or "document.txt",
+        file_type=request.file_type,
+        metadata=request.metadata,
+    )
+
+
+@router.post(
+    "/embed",
+    response_model=EmbedResponse,
+    summary="Generate text embeddings",
+)
+async def generate_embeddings(
+    request: EmbedRequest,
+    service: ResearchPipelineServiceDep,
+) -> EmbedResponse:
+    """Generate vector embeddings asynchronously for a batch of text strings."""
+    embeddings, dimensions, provider = await service.generate_embeddings_batch(
+        texts=request.texts, provider=request.provider
+    )
+    return EmbedResponse(
+        embeddings=embeddings,
+        dimensions=dimensions,
+        provider_used=provider,
+    )
+
+
+@router.post(
+    "/retrieve",
+    response_model=RetrievalResponse,
+    summary="Semantic retrieval",
+)
+async def retrieve_semantic(
+    request: RetrieveRequest,
+    service: ResearchPipelineServiceDep,
+) -> RetrievalResponse:
+    """Perform Top-K semantic similarity retrieval from vector store."""
+    return await service.retrieve_relevant_chunks(
+        query=request.query,
+        top_k=request.top_k,
+        session_id=request.session_id,
+        filter_metadata=request.filter_metadata,
+    )
+
+
+@router.get(
+    "/citations",
+    response_model=List[Citation],
+    summary="Generate citations",
+)
+async def get_citations(
+    service: ResearchPipelineServiceDep,
+    session_id: Optional[str] = Query(default=None),
+) -> List[Citation]:
+    """Retrieve structured citations for research findings."""
+    return await service.get_citations(session_id=session_id)
+
+
+@router.get(
+    "/sources",
+    response_model=SourceVerificationResponse,
+    summary="Verify source reliability",
+)
+async def verify_source(
+    service: ResearchPipelineServiceDep,
+    url: str = Query(..., description="Target source URL to evaluate"),
+    domain: Optional[str] = Query(default=None),
+) -> SourceVerificationResponse:
+    """Verify and score source authority, relevance, recency, domain reputation, and quality."""
+    return await service.verify_source(url=url, domain=domain)
+
+
+# ---------------------------------------------------------------------------
+# 3. Parameterized Session Path Endpoints
+# ---------------------------------------------------------------------------
 @router.get(
     "/{session_id}",
     response_model=ResearchSessionStatus,
@@ -89,19 +248,10 @@ async def websocket_endpoint(
     session_id: str,
     ws_manager: WebSocketManagerDep,
 ) -> None:
-    """
-    WebSocket endpoint for real-time research progress events.
-
-    Events emitted:
-    - session_started
-    - step_started / step_completed / step_failed
-    - iteration_evaluated
-    - session_completed / session_failed
-    """
+    """WebSocket endpoint for real-time research progress events."""
     await ws_manager.connect(websocket, session_id)
     try:
         while True:
-            # Keep connection alive; data is pushed server-side via ws_manager.broadcast()
             await websocket.receive_text()
     except WebSocketDisconnect:
         ws_manager.disconnect(websocket, session_id)

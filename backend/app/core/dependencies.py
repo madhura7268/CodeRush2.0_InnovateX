@@ -39,6 +39,7 @@ from app.memory.memory import MemoryService
 from app.orchestrator.orchestrator import AgentOrchestrator
 from app.planner.planner import ResearchPlanner
 from app.research.pipeline import ResearchPipeline
+from app.research.services.research_pipeline_service import ResearchPipelineService
 from app.websocket.manager import WebSocketManager
 
 # ---------------------------------------------------------------------------
@@ -67,16 +68,22 @@ WebSocketManagerDep = Annotated[WebSocketManager, Depends(get_websocket_manager)
 def get_research_pipeline(
     settings: SettingsDep,
 ) -> IResearchPipeline:
-    """
-    Provides the ResearchPipeline implementation.
-
-    When implementing: replace ResearchPipeline() with the real implementation.
-    The router only knows about IResearchPipeline, so this swap is invisible to it.
-    """
+    """Provides the ResearchPipeline implementation."""
     return ResearchPipeline(settings=settings)
 
 
 ResearchPipelineDep = Annotated[IResearchPipeline, Depends(get_research_pipeline)]
+
+
+@lru_cache(maxsize=1)
+def get_research_pipeline_service() -> ResearchPipelineService:
+    """Provides the singleton instance of the ResearchPipelineService."""
+    return ResearchPipelineService(settings=get_settings())
+
+
+ResearchPipelineServiceDep = Annotated[
+    ResearchPipelineService, Depends(get_research_pipeline_service)
+]
 
 
 # ---------------------------------------------------------------------------

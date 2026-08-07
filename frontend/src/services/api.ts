@@ -123,7 +123,6 @@ const research = {
     return httpClient
       .get<ResearchSessionStatus>(`/api/research/${sessionId}`)
       .then((r) => r.data)
-      .catch(() => ({ ...MOCK_SESSION_STATUS, session_id: sessionId }))
   },
 
   pause: async (sessionId: string): Promise<{ success: boolean }> => {

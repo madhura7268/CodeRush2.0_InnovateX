@@ -57,6 +57,8 @@ class ResearchSessionStatus(BaseModel):
     question: str
     current_iteration: int = 0
     max_iterations: int
+    confidence_threshold: float = Field(default=0.75, ge=0.0, le=1.0)
+    overall_confidence: float = Field(default=0.0, ge=0.0, le=100.0, description="Evaluator confidence score as a percentage (0–100).")
     current_step: str | None = None
     progress_percentage: float = Field(default=0.0, ge=0.0, le=100.0)
     created_at: datetime

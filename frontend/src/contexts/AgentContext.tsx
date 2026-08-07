@@ -191,6 +191,7 @@ export function AgentProvider({ children }: { children: ReactNode }) {
     })
 
     const unsubscribeEvent = webSocketService.subscribe((wsEvent: WebSocketEvent) => {
+      // Always forward the event into the activity log
       const event: ActivityEvent = {
         id: `evt-${Date.now()}`,
         session_id: wsEvent.session_id,
@@ -199,6 +200,26 @@ export function AgentProvider({ children }: { children: ReactNode }) {
         message: wsEvent.message,
       }
       dispatch({ type: 'ADD_ACTIVITY_EVENT', payload: event })
+
+      // For events that carry session status fields, also update the active session
+      // so WorkflowTimeline gets live stage updates without waiting for the next poll.
+      if (
+        wsEvent.session_id &&
+        (wsEvent.type === 'step_started' ||
+          wsEvent.type === 'step_completed' ||
+          wsEvent.type === 'step_failed' ||
+          wsEvent.type === 'iteration_evaluated' ||
+          wsEvent.type === 'session_started' ||
+          wsEvent.type === 'session_completed' ||
+          wsEvent.type === 'session_failed')
+      ) {
+        // Build a partial ResearchSessionStatus from whatever the WS event provides.
+        // The full status object will be reconciled on the next HTTP poll (every 2 s).
+        const partial = wsEvent.session_status
+        if (partial) {
+          dispatch({ type: 'UPDATE_SESSION_STATUS', payload: partial })
+        }
+      }
     })
 
     return () => {
@@ -223,18 +244,18 @@ export function AgentProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!state.activeSessionId) return
 
-    const fetchStatus = () => {
-      api.research
-        .getStatus(state.activeSessionId!)
-        .then((status) => {
-          dispatch({ type: 'UPDATE_SESSION_STATUS', payload: status })
-          
-          api.research
-            .getHistory()
-            .then((history) => dispatch({ type: 'SET_HISTORY', payload: history }))
-            .catch(() => {})
-        })
-        .catch(() => {})
+    const fetchStatus = async () => {
+      try {
+        const status = await api.research.getStatus(state.activeSessionId!)
+        dispatch({ type: 'UPDATE_SESSION_STATUS', payload: status })
+        try {
+          const history = await api.research.getHistory()
+          dispatch({ type: 'SET_HISTORY', payload: history })
+        } catch { /* history fetch failure is non-critical */ }
+      } catch {
+        // Backend unreachable or session not found — do not inject mock data.
+        // The last known state remains visible until connectivity is restored.
+      }
     }
 
     fetchStatus()

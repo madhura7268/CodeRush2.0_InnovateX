@@ -4,7 +4,7 @@
  * Wraps API calls for starting, monitoring, pausing, resuming, and stopping research sessions.
  */
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef } from 'react'
 import { api } from '@/services/api'
 import { useAgent } from '@/contexts/AgentContext'
 import type { ResearchRequest, ResearchSessionStatus } from '@/types'
@@ -25,9 +25,12 @@ export function useResearch(): UseResearchReturn {
   const { activeSessionId } = state
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const isSubmittingRef = useRef(false)
 
   const startResearch = useCallback(
     async (request: ResearchRequest): Promise<string | null> => {
+      if (isSubmittingRef.current) return null
+      isSubmittingRef.current = true
       setIsLoading(true)
       setError(null)
       try {
@@ -40,6 +43,7 @@ export function useResearch(): UseResearchReturn {
         return null
       } finally {
         setIsLoading(false)
+        isSubmittingRef.current = false
       }
     },
     [dispatch]

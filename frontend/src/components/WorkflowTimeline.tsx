@@ -17,7 +17,6 @@ import { useAgent } from '@/contexts/AgentContext'
 
 interface WorkflowTimelineProps {
   nodes?: WorkflowNode[]
-  confidenceScore?: number
   confidenceThreshold?: number
 }
 
@@ -36,7 +35,6 @@ function NodeStatusIcon({ status }: { status: StepStatus }) {
 
 export default function WorkflowTimeline({
   nodes = MOCK_WORKFLOW_NODES,
-  confidenceScore = 86.5,
   confidenceThreshold = 80,
 }: WorkflowTimelineProps) {
   const { state } = useAgent()
@@ -124,11 +122,11 @@ export default function WorkflowTimeline({
   )
 
   const finalConfidenceScore = hasRealSession
-    ? (currentStatus === 'completed' ? 85.0 : 0.0)
-    : confidenceScore
+    ? (activeSession.overall_confidence ?? 0.0)
+    : 0.0
 
   const finalConfidenceThreshold = hasRealSession
-    ? activeSession.confidence_threshold
+    ? ((activeSession.confidence_threshold ?? 0.75) * 100)
     : confidenceThreshold
 
   const isThresholdMet = finalConfidenceScore >= finalConfidenceThreshold

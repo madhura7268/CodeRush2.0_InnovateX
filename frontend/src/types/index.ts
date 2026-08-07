@@ -70,6 +70,7 @@ export interface ResearchSessionStatus {
   current_iteration: number
   max_iterations: number
   confidence_threshold: number
+  overall_confidence: number  // real evaluator score as percentage (0-100)
   current_step: string | null
   progress_percentage: number
   created_at: string
@@ -394,6 +395,8 @@ export interface WebSocketEvent {
   result?: Record<string, unknown>
   timestamp?: string
   level?: EventLevel
+  /** Full or partial session status snapshot, when the backend includes it in the event payload. */
+  session_status?: ResearchSessionStatus
 }
 
 // ============================================================================

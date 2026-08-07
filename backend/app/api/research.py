@@ -24,6 +24,7 @@ from app.core.dependencies import (
     ResearchPipelineServiceDep,
     WebSocketManagerDep,
 )
+from app.core.logging import get_logger
 from app.schemas.research import (
     Citation,
     EmbedRequest,
@@ -42,6 +43,7 @@ from app.schemas.research import (
 )
 
 router = APIRouter()
+logger = get_logger(__name__)
 
 
 # ---------------------------------------------------------------------------

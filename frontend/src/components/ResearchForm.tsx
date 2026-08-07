@@ -42,6 +42,7 @@ export default function ResearchForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (isLoading || isRunning || isPaused) return
     if (!question.trim() || question.length < 10) return
 
     await startResearch({

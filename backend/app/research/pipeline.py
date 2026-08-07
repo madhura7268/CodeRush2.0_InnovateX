@@ -138,7 +138,8 @@ class ResearchPipeline(IResearchPipeline):
                 "type": "session_started",
                 "session_id": session_id,
                 "message": f"Planning research strategy for topic: '{_sessions[session_id]['question']}'",
-                "timestamp": datetime.now(timezone.utc).isoformat()
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "session_status": self._session_status_snapshot(session_id),
             })
 
             question = _sessions[session_id]["question"]
@@ -165,6 +166,8 @@ class ResearchPipeline(IResearchPipeline):
                     # Also update current step title in session store
                     if event.get("type") == "step_started":
                         _sessions[session_id]["current_step"] = event.get("step_title")
+                    # Embed session snapshot so frontend WS path can update WorkflowTimeline immediately
+                    event["session_status"] = self._session_status_snapshot(session_id)
                     await self.ws_manager.broadcast(session_id, event)
 
                 # Re-check cancellation/pause state
@@ -184,16 +187,23 @@ class ResearchPipeline(IResearchPipeline):
                     iteration=iteration
                 )
 
-                # Broadcast evaluation result
+                # Cache confidence percentage in _sessions dict BEFORE broadcasting so
+                # _session_status_snapshot() includes the real evaluator score immediately.
+                # eval_result.overall_confidence is in 0-1 scale from the evaluator.
+                if session_id in _sessions:
+                    _sessions[session_id]["overall_confidence_pct"] = eval_result.overall_confidence * 100.0
+
+                # Broadcast evaluation result (snapshot now has real confidence score)
                 await self.ws_manager.broadcast(session_id, {
                     "type": "iteration_evaluated",
                     "session_id": session_id,
                     "message": f"Iteration {iteration} evaluated. Current overall confidence: {eval_result.overall_confidence*100:.1f}%",
                     "result": eval_result.model_dump(),
-                    "timestamp": datetime.now(timezone.utc).isoformat()
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                    "session_status": self._session_status_snapshot(session_id),
                 })
 
-                # Persist evaluation metrics in session context
+                # Persist evaluation metrics in session context (0-1 scale stored in memory)
                 await self.memory.update_session_state(session_id, {
                     "overall_confidence": eval_result.overall_confidence,
                     "total_iterations": iteration,
@@ -226,7 +236,8 @@ class ResearchPipeline(IResearchPipeline):
                 "type": "session_completed",
                 "session_id": session_id,
                 "message": "Autonomous research workflow completed successfully. Synthesized final report.",
-                "timestamp": datetime.now(timezone.utc).isoformat()
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "session_status": self._session_status_snapshot(session_id),
             })
 
         except Exception as e:
@@ -236,7 +247,8 @@ class ResearchPipeline(IResearchPipeline):
                 "type": "session_failed",
                 "session_id": session_id,
                 "message": f"Critical error in research execution loop: {str(e)}",
-                "timestamp": datetime.now(timezone.utc).isoformat()
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "session_status": self._session_status_snapshot(session_id),
             })
 
     async def _update_status(self, session_id: str, status: SessionStatus, iteration: int | None = None) -> None:
@@ -251,6 +263,36 @@ class ResearchPipeline(IResearchPipeline):
                 "status": status,
                 "current_iteration": _sessions[session_id]["current_iteration"]
             })
+
+    def _session_status_snapshot(self, session_id: str) -> dict:
+        """Return a lightweight session status dict suitable for embedding in WS events."""
+        if session_id not in _sessions:
+            return {}
+        s = _sessions[session_id]
+        curr = s["current_iteration"]
+        total = s["max_iterations"]
+        status = s["status"]
+        if status == SessionStatus.COMPLETED:
+            progress = 100.0
+        elif status in (SessionStatus.FAILED, SessionStatus.CANCELLED):
+            progress = 100.0
+        else:
+            progress = min(99.0, (curr / max(total, 1)) * 100.0)
+        # Read the live evaluator confidence score (stored as 0-1 float, exposed as 0-100 percentage)
+        overall_confidence_pct = s.get("overall_confidence_pct", 0.0)
+        return {
+            "session_id": session_id,
+            "status": status,
+            "question": s["question"],
+            "current_iteration": curr,
+            "max_iterations": total,
+            "confidence_threshold": s["confidence_threshold"],
+            "overall_confidence": overall_confidence_pct,
+            "current_step": s.get("current_step"),
+            "progress_percentage": progress,
+            "created_at": s["created_at"].isoformat(),
+            "updated_at": s["updated_at"].isoformat(),
+        }
 
     async def get_session_status(self, session_id: str) -> ResearchSessionStatus:
         """
@@ -273,12 +315,18 @@ class ResearchPipeline(IResearchPipeline):
             total = session["max_iterations"]
             progress = min(99.0, (curr / max(total, 1)) * 100.0)
 
+        # Fetch the real evaluator confidence score (stored as 0-1, convert to 0-100)
+        context = await self.memory.get_session_context(session_id)
+        overall_confidence_pct = context.get("overall_confidence", 0.0) * 100.0
+
         return ResearchSessionStatus(
             session_id=session_id,
             status=status,
             question=session["question"],
             current_iteration=session["current_iteration"],
             max_iterations=session["max_iterations"],
+            confidence_threshold=session["confidence_threshold"],
+            overall_confidence=overall_confidence_pct,
             progress_percentage=progress,
             current_step=session.get("current_step"),
             created_at=session["created_at"],

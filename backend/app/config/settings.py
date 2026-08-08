@@ -47,8 +47,10 @@ class Settings(BaseSettings):
     # --- Backend ---
     BACKEND_HOST: str = "0.0.0.0"
     BACKEND_PORT: int = 8000
+    PORT: int = 8000
     SECRET_KEY: str = "dev-secret-key-change-in-production"
-    ALLOWED_ORIGINS: Any = ["http://localhost:5173", "http://localhost:3000"]
+    FRONTEND_URL: str = ""
+    ALLOWED_ORIGINS: Any = ["http://localhost:5173", "http://localhost:3000", "http://localhost:5174", "http://localhost:5175"]
 
     # --- PostgreSQL ---
     POSTGRES_HOST: str = "localhost"
@@ -95,6 +97,7 @@ class Settings(BaseSettings):
     @classmethod
     def parse_allowed_origins(cls, v):
         """Allow ALLOWED_ORIGINS to be a comma-separated string or a JSON array in .env."""
+        origins = []
         if isinstance(v, str):
             v = v.strip()
             if v.startswith("[") and v.endswith("]"):
@@ -102,11 +105,19 @@ class Settings(BaseSettings):
                     import json
                     parsed = json.loads(v)
                     if isinstance(parsed, list):
-                        return [str(item).strip() for item in parsed]
+                        origins = [str(item).strip() for item in parsed]
                 except Exception:
                     pass
-            return [origin.strip() for origin in v.split(",") if origin.strip()]
-        return v
+            if not origins:
+                origins = [origin.strip() for origin in v.split(",") if origin.strip()]
+        elif isinstance(v, list):
+            origins = [str(item).strip() for item in v]
+
+        import os
+        frontend_url = os.getenv("FRONTEND_URL")
+        if frontend_url and frontend_url.strip() and frontend_url.strip() not in origins:
+            origins.append(frontend_url.strip())
+        return origins if origins else ["*"]
 
     @property
     def is_production(self) -> bool:

@@ -56,14 +56,18 @@ class ResearchPipeline(IResearchPipeline):
         self.ws_manager = ws_manager
         logger.info("ResearchPipeline fully initialized with active sub-services")
 
-    async def get_history(self) -> list[ResearchHistoryItem]:
+    async def get_history(self, user_id: str | None = None) -> list[ResearchHistoryItem]:
         """
-        Retrieve history of all research sessions.
+        Retrieve history of research sessions, strictly filtered by user_id if provided.
         """
         history = []
         for session_id, session in _sessions.items():
+            # User isolation check: filter out sessions that do not belong to the requested user_id
+            if user_id and session.get("user_id") and session.get("user_id") != user_id:
+                continue
+
             context = await self.memory.get_session_context(session_id)
-            overall_confidence = context.get("overall_confidence", 0.0) * 100.0
+            overall_confidence = session.get("overall_confidence_pct", context.get("overall_confidence", 0.0) * 100.0)
 
             # Count unique sources from citations in findings
             citations = []
@@ -76,7 +80,7 @@ class ResearchPipeline(IResearchPipeline):
                 ResearchHistoryItem(
                     session_id=session_id,
                     question=session["question"],
-                    date=session["created_at"].strftime("%Y-%m-%d %H:%M"),
+                    date=session["created_at"].isoformat() if hasattr(session["created_at"], "isoformat") else str(session["created_at"]),
                     status=session["status"],
                     iterations=session["current_iteration"],
                     sources_count=sources_count,
@@ -88,22 +92,43 @@ class ResearchPipeline(IResearchPipeline):
         history.sort(key=lambda x: x.date, reverse=True)
         return history
 
-    async def start_research(self, request: ResearchRequest) -> str:
+    async def start_research(
+        self, request: ResearchRequest, user_id: str | None = None
+    ) -> str:
         """
-        Start an autonomous research session asynchronously.
+        Start an autonomous research session asynchronously for an authenticated user.
+        Guarantees idempotency — prevents creating duplicate sessions for the same active query per user.
         """
+        cleaned_question = request.question.strip()
+        now = datetime.now(timezone.utc)
+
+        # Idempotency check: reuse existing active session for identical question belonging to same user
+        for s_id, s in _sessions.items():
+            if s["question"].strip().lower() == cleaned_question.lower():
+                if user_id and s.get("user_id") and s.get("user_id") != user_id:
+                    continue
+                if s["status"] in (SessionStatus.PENDING, SessionStatus.PLANNING, SessionStatus.RUNNING, SessionStatus.EVALUATING):
+                    logger.info("Reusing existing active session for duplicate request", session_id=s_id)
+                    return s_id
+                # Or created within the last 5 seconds
+                age = (now - s["created_at"]).total_seconds()
+                if age < 5.0:
+                    logger.info("Deduplicated identical session request within 5s window", session_id=s_id)
+                    return s_id
+
         session_id = str(uuid.uuid4())
         
-        # 1. Initialize session info
+        # 1. Initialize session info with authenticated user_id
         _sessions[session_id] = {
             "session_id": session_id,
+            "user_id": user_id,
             "status": SessionStatus.PENDING,
-            "question": request.question,
+            "question": cleaned_question,
             "current_iteration": 0,
             "max_iterations": request.max_iterations or self.settings.MAX_RESEARCH_ITERATIONS,
             "confidence_threshold": request.confidence_threshold or self.settings.EVALUATION_CONFIDENCE_THRESHOLD,
-            "created_at": datetime.now(timezone.utc),
-            "updated_at": datetime.now(timezone.utc),
+            "created_at": now,
+            "updated_at": now,
             "current_step": None,
             "tags": request.tags or [],
         }
@@ -111,7 +136,8 @@ class ResearchPipeline(IResearchPipeline):
         # 2. Store session details in memory
         await self.memory.update_session_state(session_id, {
             "session_id": session_id,
-            "question": request.question,
+            "user_id": user_id,
+            "question": cleaned_question,
             "status": SessionStatus.PENDING,
             "findings": [],
             "tool_call_history": [],
@@ -119,7 +145,7 @@ class ResearchPipeline(IResearchPipeline):
             "total_iterations": 0,
         })
 
-        logger.info("Created research session", session_id=session_id)
+        logger.info("Created research session", session_id=session_id, user_id=user_id)
 
         # 3. Spawn background execution task
         asyncio.create_task(self._run_research_loop(session_id))
@@ -198,7 +224,7 @@ class ResearchPipeline(IResearchPipeline):
                     "type": "iteration_evaluated",
                     "session_id": session_id,
                     "message": f"Iteration {iteration} evaluated. Current overall confidence: {eval_result.overall_confidence*100:.1f}%",
-                    "result": eval_result.model_dump(),
+                    "result": eval_result.model_dump(mode="json"),
                     "timestamp": datetime.now(timezone.utc).isoformat(),
                     "session_status": self._session_status_snapshot(session_id),
                 })

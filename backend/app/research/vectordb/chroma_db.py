@@ -37,10 +37,10 @@ class VectorDatabaseService:
         self._init_client()
 
     def _init_client(self) -> None:
-        """Initialize ChromaDB client or set up fallback."""
+        """Initialize ChromaDB client or set up local persistent fallback."""
         if chromadb:
             try:
-                # Connect to ChromaDB server if running, or use persistent client
+                # Connect to ChromaDB server if running
                 self._chroma_client = chromadb.HttpClient(
                     host=self.settings.CHROMA_HOST,
                     port=self.settings.CHROMA_PORT,
@@ -49,19 +49,20 @@ class VectorDatabaseService:
                     name=self.collection_name,
                     metadata={"hnsw:space": "cosine"},
                 )
-                logger.info("Connected to ChromaDB server", host=self.settings.CHROMA_HOST)
+                logger.info("Connected to ChromaDB server", host=self.settings.CHROMA_HOST, port=self.settings.CHROMA_PORT)
                 return
             except Exception as e:  # noqa: BLE001
-                logger.warning("Could not connect to ChromaDB server, using ephemeral client", error=str(e))
+                logger.info("ChromaDB HTTP server unavailable, connecting to local persistent ChromaDB store", error=str(e))
                 try:
-                    self._chroma_client = chromadb.Client()
+                    self._chroma_client = chromadb.PersistentClient(path="./data/chroma")
                     self._collection = self._chroma_client.get_or_create_collection(
                         name=self.collection_name,
                         metadata={"hnsw:space": "cosine"},
                     )
+                    logger.info("Connected to local persistent ChromaDB vector store", path="./data/chroma")
                     return
                 except Exception as ex:  # noqa: BLE001
-                    logger.warning("Ephemeral ChromaDB client failed, using in-memory vector store", error=str(ex))
+                    logger.warning("Persistent ChromaDB client failed, using in-memory vector store", error=str(ex))
 
         logger.info("Using in-memory vector store fallback")
 

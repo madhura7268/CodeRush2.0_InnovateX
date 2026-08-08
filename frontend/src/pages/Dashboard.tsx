@@ -13,10 +13,10 @@ import WorkflowTimeline from '@/components/WorkflowTimeline'
 import LiveActivityPanel from '@/components/LiveActivityPanel'
 import HumanApprovalModal from '@/components/HumanApprovalModal'
 import { useAgent } from '@/contexts/AgentContext'
-import { truncate } from '@/utils/formatters'
+import { formatHistoryDate, truncate } from '@/utils/formatters'
 
 export default function Dashboard() {
-  const { state } = useAgent()
+  const { state, dispatch } = useAgent()
   const { activeSession, history } = state
   const navigate = useNavigate()
 
@@ -24,6 +24,11 @@ export default function Dashboard() {
     history.length > 0
       ? (history.reduce((acc, curr) => acc + curr.overall_confidence, 0) / history.length).toFixed(1) + '%'
       : '0.0%'
+
+  const handleSelectSession = (sessionId: string) => {
+    dispatch({ type: 'SET_ACTIVE_SESSION', payload: sessionId })
+    navigate(`/report?session_id=${sessionId}`)
+  }
 
   return (
     <div className="space-y-8 animate-fade-in pb-8">
@@ -41,7 +46,7 @@ export default function Dashboard() {
 
         {activeSession && (
           <button
-            onClick={() => navigate('/report')}
+            onClick={() => handleSelectSession(activeSession.session_id)}
             className="px-4 py-2.5 rounded-xl font-semibold text-xs text-white bg-blue-600 hover:bg-blue-700 transition-colors flex items-center gap-2"
           >
             <span>Inspect Active Session</span>
@@ -97,6 +102,7 @@ export default function Dashboard() {
               <h2 className="text-sm font-bold text-slate-900">Recent Research Sessions</h2>
             </div>
             <button
+              id="view-all-history-btn"
               onClick={() => navigate('/history')}
               className="text-xs text-blue-600 hover:underline flex items-center gap-1 font-bold"
             >
@@ -110,7 +116,7 @@ export default function Dashboard() {
               history.map((session) => (
                 <div
                   key={session.session_id}
-                  onClick={() => navigate('/report')}
+                  onClick={() => handleSelectSession(session.session_id)}
                   className="flex items-center justify-between p-3.5 rounded-xl bg-slate-50 border border-slate-200 hover:border-slate-300 hover:bg-slate-100/50 transition-all cursor-pointer group"
                 >
                   <div className="flex-1 min-w-0 mr-3">
@@ -118,7 +124,7 @@ export default function Dashboard() {
                       {truncate(session.question, 65)}
                     </p>
                     <p className="text-xs text-slate-500 mt-1">
-                      {session.date} · {session.iterations} iterations · {session.sources_count} sources ·{' '}
+                      {formatHistoryDate(session.date)} · {session.iterations === 1 ? '1 iteration' : `${session.iterations} iterations`} · {session.sources_count} {session.sources_count === 1 ? 'source' : 'sources'} ·{' '}
                       <strong className="text-emerald-600 font-mono">{session.overall_confidence.toFixed(1)}% confidence</strong>
                     </p>
                   </div>

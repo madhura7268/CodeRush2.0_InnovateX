@@ -70,17 +70,9 @@ async def lifespan(app: FastAPI) -> AsyncGenerator:
         environment=settings.APP_ENV,
     )
 
-    # TODO: Initialize database connection pool
-    # from app.core.database import init_db
-    # await init_db()
-
-    # TODO: Initialize ChromaDB client
-    # from app.memory.client import init_chroma
-    # await init_chroma()
-
-    # TODO: Initialize LLM provider
-    # from app.orchestrator.client import init_llm
-    # await init_llm()
+    # Initialize database connection pool & tables
+    from app.core.database import init_db
+    await init_db()
 
     logger.info("All services initialized. Application is ready.", allowed_origins=settings.ALLOWED_ORIGINS)
 

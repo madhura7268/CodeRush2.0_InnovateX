@@ -10,14 +10,39 @@ Usage (from the orchestrator or research pipeline):
     await ws_manager.broadcast(session_id, {"type": "step_completed", ...})
 """
 
+from datetime import datetime, date
+from uuid import UUID
+from enum import Enum
 import json
 from collections import defaultdict
+from typing import Any
 
 from fastapi import WebSocket
 
 from app.core.logging import get_logger
 
 logger = get_logger(__name__)
+
+
+def json_serial(obj: Any) -> Any:
+    """Recursively convert objects (datetime, UUID, Enum, Pydantic models, dicts, lists) to JSON primitives."""
+    if obj is None or isinstance(obj, (str, int, float, bool)):
+        return obj
+    if isinstance(obj, (datetime, date)):
+        return obj.isoformat()
+    if isinstance(obj, UUID):
+        return str(obj)
+    if isinstance(obj, Enum):
+        return obj.value
+    if hasattr(obj, "model_dump"):
+        return json_serial(obj.model_dump(mode="json"))
+    if hasattr(obj, "dict"):
+        return json_serial(obj.dict())
+    if isinstance(obj, dict):
+        return {str(k): json_serial(v) for k, v in obj.items()}
+    if isinstance(obj, (list, tuple, set)):
+        return [json_serial(item) for item in obj]
+    return str(obj)
 
 
 class WebSocketManager:
@@ -61,7 +86,12 @@ class WebSocketManager:
             return
 
         disconnected: list[WebSocket] = []
-        payload = json.dumps(message)
+        try:
+            sanitized_message = json_serial(message)
+            payload = json.dumps(sanitized_message, default=str)
+        except Exception as e:
+            logger.error("Failed to JSON-serialize WebSocket message", session_id=session_id, error=str(e))
+            return
 
         for websocket in self._connections[session_id]:
             try:

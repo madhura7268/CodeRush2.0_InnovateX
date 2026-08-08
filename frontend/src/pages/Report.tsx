@@ -5,6 +5,7 @@
  */
 
 import { useState, useEffect } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { FileText, CheckCircle2, Search, Loader2 } from 'lucide-react'
 import ReportViewer from '@/components/ReportViewer'
 import { useAgent } from '@/contexts/AgentContext'
@@ -13,14 +14,26 @@ import type { StructuredReport } from '@/types'
 
 export default function ReportPage() {
   const { state } = useAgent()
-  const { history } = state
+  const { history, activeSessionId } = state
+  const [searchParams] = useSearchParams()
+  const urlSessionId = searchParams.get('session_id')
 
-  const completedSessions = history.filter((s) => s.status === 'completed' || s.status === 'running')
-  const [selectedSessionId, setSelectedSessionId] = useState<string>(
-    completedSessions[0]?.session_id || 'sess-pothole-002'
-  )
+  const availableSessions = history.length > 0 ? history : []
+  const initialSessionId = urlSessionId || activeSessionId || availableSessions[0]?.session_id || ''
+
+  const [selectedSessionId, setSelectedSessionId] = useState<string>(initialSessionId)
   const [report, setReport] = useState<StructuredReport | null>(null)
   const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    if (urlSessionId) {
+      setSelectedSessionId(urlSessionId)
+    } else if (activeSessionId && !selectedSessionId) {
+      setSelectedSessionId(activeSessionId)
+    } else if (!selectedSessionId && availableSessions.length > 0) {
+      setSelectedSessionId(availableSessions[0].session_id)
+    }
+  }, [urlSessionId, activeSessionId, availableSessions])
 
   useEffect(() => {
     if (!selectedSessionId) return
@@ -53,7 +66,7 @@ export default function ReportPage() {
               Reports Available
             </span>
             <span className="text-xs font-bold text-slate-900 font-mono">
-              {completedSessions.length || 1} Documents
+              {availableSessions.length} Documents
             </span>
           </div>
 
@@ -69,7 +82,7 @@ export default function ReportPage() {
       </div>
 
       {/* Report Selector Bar */}
-      {completedSessions.length > 0 && (
+      {availableSessions.length > 0 && (
         <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-sm flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-2 flex-1 min-w-[280px]">
             <Search size={16} className="text-blue-600 flex-shrink-0" />
@@ -82,7 +95,7 @@ export default function ReportPage() {
               onChange={(e) => setSelectedSessionId(e.target.value)}
               className="flex-1 bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2 text-xs font-medium text-slate-900 focus:outline-none focus:border-blue-600"
             >
-              {completedSessions.map((session) => (
+              {availableSessions.map((session) => (
                 <option key={session.session_id} value={session.session_id}>
                   {session.question} (Confidence: {session.overall_confidence.toFixed(1)}%)
                 </option>

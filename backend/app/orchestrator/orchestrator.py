@@ -238,7 +238,7 @@ class AgentOrchestrator(IAgentOrchestrator):
                 except Exception as e:
                     logger.warning("Vector database ingestion failed for source", url=r.url, error=str(e))
 
-            return {"results": [r.model_dump() for r in results]}
+            return {"results": [r.model_dump(mode="json") for r in results]}
 
         elif step.tool == ToolType.SANDBOX:
             code = params.get("code", "")
@@ -254,7 +254,7 @@ class AgentOrchestrator(IAgentOrchestrator):
                     top_k=params.get("top_k", 5),
                     session_id=session_id
                 )
-                return retrieved.model_dump()
+                return retrieved.model_dump(mode="json")
             else:
                 content = params.get("content", "")
                 meta = params.get("metadata", {})
@@ -279,7 +279,7 @@ class AgentOrchestrator(IAgentOrchestrator):
                 session_id=session_id,
                 iteration=iteration
             )
-            return eval_res.model_dump()
+            return eval_res.model_dump(mode="json")
 
         else:
             logger.warning("Unsupported step tool requested", tool=step.tool)

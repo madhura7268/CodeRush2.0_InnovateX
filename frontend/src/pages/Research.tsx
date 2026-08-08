@@ -42,21 +42,25 @@ export default function Research() {
 
   const [activeTab, setActiveTab] = useState<string>('plan')
 
+  const currentSessionId = sessionId || activeSession?.session_id || 'No active session'
+
+  const confidenceDisplay = activeSession?.overall_confidence
+    ? `${activeSession.overall_confidence.toFixed(1)}%`
+    : '--'
+
   const tabs = [
     { id: 'plan', label: 'Plan & Steps', icon: Brain },
     { id: 'workflow', label: 'Workflow Graph', icon: Layers },
     { id: 'activity', label: 'Live Stream', icon: Activity },
-    { id: 'sources', label: 'Sources (12)', icon: Globe },
+    { id: 'sources', label: 'Sources', icon: Globe },
     { id: 'rag', label: 'RAG Memory', icon: Database },
-    { id: 'confidence', label: 'Confidence (86.5%)', icon: TrendingUp },
+    { id: 'confidence', label: `Confidence (${confidenceDisplay})`, icon: TrendingUp },
     { id: 'evaluation', label: 'Evaluation', icon: Award },
     { id: 'self-improvement', label: 'Self-Improvement', icon: RefreshCw },
     { id: 'governance', label: 'Governance', icon: ShieldCheck },
     { id: 'sandbox', label: 'Sandbox Exec', icon: Terminal },
     { id: 'report', label: 'Final Report', icon: FileText },
   ]
-
-  const currentSessionId = sessionId || activeSession?.session_id || 'sess-pothole-002'
 
   return (
     <div className="space-y-6 animate-fade-in pb-8">
@@ -73,7 +77,7 @@ export default function Research() {
               {activeSession && <StatusBadge status={activeSession.status} />}
             </div>
             <h1 className="text-xl font-bold text-slate-900 mt-1">
-              {activeSession?.question || 'Is AI-based pothole detection practical for Indian roads?'}
+              {activeSession?.question || 'No research prompt selected'}
             </h1>
           </div>
 
@@ -81,13 +85,15 @@ export default function Research() {
             <div className="px-3.5 py-1.5 rounded-xl bg-slate-50 border border-slate-200 text-center">
               <span className="text-[10px] text-slate-500 font-semibold uppercase block">Iteration</span>
               <span className="text-xs font-bold text-blue-600 font-mono">
-                {activeSession?.current_iteration || 2} / {activeSession?.max_iterations || 3}
+                {activeSession ? `${activeSession.current_iteration} / ${activeSession.max_iterations}` : '--'}
               </span>
             </div>
 
             <div className="px-3.5 py-1.5 rounded-xl bg-slate-50 border border-slate-200 text-center">
               <span className="text-[10px] text-slate-500 font-semibold uppercase block">Confidence</span>
-              <span className="text-xs font-bold text-emerald-600 font-mono">86.5%</span>
+              <span className="text-xs font-bold text-emerald-600 font-mono">
+                {confidenceDisplay}
+              </span>
             </div>
           </div>
         </div>
@@ -124,7 +130,7 @@ export default function Research() {
         {activeTab === 'activity' && <LiveActivityPanel />}
         {activeTab === 'sources' && <SourcesPanel />}
         {activeTab === 'rag' && <RagPanel />}
-        {activeTab === 'confidence' && <ConfidencePanel />}
+        {activeTab === 'confidence' && <ConfidencePanel overallConfidence={activeSession?.overall_confidence} />}
         {activeTab === 'evaluation' && <EvaluationPanel />}
         {activeTab === 'self-improvement' && <SelfImprovementPanel />}
         {activeTab === 'governance' && <GovernancePanel />}

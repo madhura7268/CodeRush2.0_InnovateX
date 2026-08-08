@@ -28,7 +28,11 @@ class WebSocketService {
     this.disconnect()
     this.currentSessionId = sessionId
 
-    const wsBaseUrl = import.meta.env.VITE_WS_BASE_URL || 'ws://localhost:8000'
+    let wsBaseUrl = import.meta.env.VITE_WS_BASE_URL
+    if (!wsBaseUrl) {
+      const apiBase = import.meta.env.VITE_API_BASE_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:8000')
+      wsBaseUrl = apiBase.replace(/^http/, 'ws')
+    }
     const url = `${wsBaseUrl}/api/research/ws/${sessionId}`
 
     try {

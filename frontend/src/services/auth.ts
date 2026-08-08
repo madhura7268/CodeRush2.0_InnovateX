@@ -1,142 +1,116 @@
 /**
  * Centralized Authentication Service
  *
- * Encapsulates Firebase Authentication API calls & error translations.
+ * Communicates with FastAPI Backend (/api/auth/register, /api/auth/login, /api/auth/me, /api/auth/logout).
  */
 
-import {
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-  signOut,
-  sendPasswordResetEmail,
-  updateProfile,
-  onAuthStateChanged,
-  User as FirebaseUser,
-} from 'firebase/auth'
-import { auth, isFirebaseConfigured } from './firebase'
+import axios from 'axios'
 
 export interface UserProfile {
   uid: string
-  email: string | null
-  displayName: string | null
+  email: string
+  displayName: string
   photoURL: string | null
 }
 
-const MOCK_USER_STORAGE_KEY = 'ae02_demo_user'
-
-/** Format a FirebaseUser into a simple UserProfile */
-export function formatUserProfile(user: FirebaseUser): UserProfile {
-  return {
-    uid: user.uid,
-    email: user.email,
-    displayName: user.displayName || user.email?.split('@')[0] || 'Researcher',
-    photoURL: user.photoURL,
-  }
+export interface AuthResponse {
+  success: boolean
+  access_token: string
+  token_type: string
+  user: UserProfile
 }
 
-/** Translate raw Firebase error codes into clean user-friendly messages */
-export function getFirebaseErrorMessage(error: any): string {
-  const code = error?.code || ''
-  switch (code) {
-    case 'auth/invalid-email':
-      return 'The email address format is invalid.'
-    case 'auth/user-not-found':
-    case 'auth/wrong-password':
-    case 'auth/invalid-credential':
-      return 'Invalid email or password. Please check your credentials.'
-    case 'auth/email-already-in-use':
-      return 'An account with this email address already exists.'
-    case 'auth/weak-password':
-      return 'The password is too weak. Please use at least 6 characters.'
-    case 'auth/too-many-requests':
-      return 'Too many unsuccessful login attempts. Please try again later.'
-    case 'auth/network-request-failed':
-      return 'Network error. Please check your internet connection.'
-    case 'auth/user-disabled':
-      return 'This user account has been disabled.'
-    default:
-      return error?.message || 'Authentication failed. Please try again.'
-  }
+const AUTH_TOKEN_KEY = 'ae02_auth_token'
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
+
+/** Get stored JWT token from localStorage */
+export function getStoredAuthToken(): string | null {
+  return localStorage.getItem(AUTH_TOKEN_KEY)
 }
 
-/** Register new user */
+/** Set JWT token in localStorage */
+export function setStoredAuthToken(token: string): void {
+  localStorage.setItem(AUTH_TOKEN_KEY, token)
+}
+
+/** Remove JWT token from localStorage */
+export function clearStoredAuthToken(): void {
+  localStorage.removeItem(AUTH_TOKEN_KEY)
+}
+
+/** Register new user via FastAPI backend */
 export async function signUp(name: string, email: string, pass: string): Promise<UserProfile> {
-  if (!isFirebaseConfigured) {
-    // Local Demo / Fallback Authentication Mode
-    const demoUser: UserProfile = {
-      uid: 'demo-' + Date.now(),
+  try {
+    const res = await axios.post<AuthResponse>(`${API_BASE_URL}/api/auth/register`, {
+      name,
       email,
-      displayName: name,
-      photoURL: null,
+      password: pass,
+    })
+    if (res.data?.access_token) {
+      setStoredAuthToken(res.data.access_token)
     }
-    localStorage.setItem(MOCK_USER_STORAGE_KEY, JSON.stringify(demoUser))
-    return demoUser
+    return res.data.user
+  } catch (error: any) {
+    const msg = error?.response?.data?.detail || error?.message || 'Registration failed. Please try again.'
+    throw new Error(typeof msg === 'string' ? msg : JSON.stringify(msg))
   }
-
-  const credential = await createUserWithEmailAndPassword(auth, email, pass)
-  if (name && credential.user) {
-    await updateProfile(credential.user, { displayName: name })
-  }
-  return formatUserProfile(credential.user)
 }
 
-/** Login existing user */
+/** Login existing user via FastAPI backend */
 export async function login(email: string, pass: string): Promise<UserProfile> {
-  if (!isFirebaseConfigured) {
-    // Local Demo / Fallback Authentication Mode
-    const demoUser: UserProfile = {
-      uid: 'demo-user-123',
+  try {
+    const res = await axios.post<AuthResponse>(`${API_BASE_URL}/api/auth/login`, {
       email,
-      displayName: email.split('@')[0] || 'Researcher',
-      photoURL: null,
+      password: pass,
+    })
+    if (res.data?.access_token) {
+      setStoredAuthToken(res.data.access_token)
     }
-    localStorage.setItem(MOCK_USER_STORAGE_KEY, JSON.stringify(demoUser))
-    return demoUser
+    return res.data.user
+  } catch (error: any) {
+    const msg = error?.response?.data?.detail || error?.message || 'Login failed. Please check credentials.'
+    throw new Error(typeof msg === 'string' ? msg : JSON.stringify(msg))
   }
-
-  const credential = await signInWithEmailAndPassword(auth, email, pass)
-  return formatUserProfile(credential.user)
 }
 
 /** Logout user */
 export async function logout(): Promise<void> {
-  if (!isFirebaseConfigured) {
-    localStorage.removeItem(MOCK_USER_STORAGE_KEY)
-    return
-  }
-  await signOut(auth)
-}
-
-/** Send password reset email */
-export async function resetPassword(email: string): Promise<void> {
-  if (!isFirebaseConfigured) {
-    return
-  }
-  await sendPasswordResetEmail(auth, email)
-}
-
-/** Get current user synchronous snapshot */
-export function getCurrentUser(): UserProfile | null {
-  if (!isFirebaseConfigured) {
-    const saved = localStorage.getItem(MOCK_USER_STORAGE_KEY)
-    return saved ? JSON.parse(saved) : null
-  }
-  return auth.currentUser ? formatUserProfile(auth.currentUser) : null
-}
-
-/** Subscribe to auth state changes */
-export function subscribeToAuthState(callback: (user: UserProfile | null) => void): () => void {
-  if (!isFirebaseConfigured) {
-    const checkDemoUser = () => {
-      const saved = localStorage.getItem(MOCK_USER_STORAGE_KEY)
-      callback(saved ? JSON.parse(saved) : null)
+  const token = getStoredAuthToken()
+  if (token) {
+    try {
+      await axios.post(`${API_BASE_URL}/api/auth/logout`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+    } catch {
+      // Ignore logout errors
     }
-    checkDemoUser()
-    window.addEventListener('storage', checkDemoUser)
-    return () => window.removeEventListener('storage', checkDemoUser)
   }
+  clearStoredAuthToken()
+}
 
-  return onAuthStateChanged(auth, (firebaseUser: FirebaseUser | null) => {
-    callback(firebaseUser ? formatUserProfile(firebaseUser) : null)
-  })
+/** Send password reset (stub for UI compatibility) */
+export async function resetPassword(email: string): Promise<void> {
+  console.info('Password reset requested for:', email)
+}
+
+/** Fetch current user profile from backend using stored token */
+export async function fetchCurrentUser(): Promise<UserProfile | null> {
+  const token = getStoredAuthToken()
+  if (!token) return null
+
+  try {
+    const res = await axios.get<UserProfile>(`${API_BASE_URL}/api/auth/me`, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+    return res.data
+  } catch (error: any) {
+    clearStoredAuthToken()
+    return null
+  }
+}
+
+/** Translate error into user-friendly message */
+export function getFirebaseErrorMessage(error: any): string {
+  if (typeof error === 'string') return error
+  return error?.message || 'Authentication error occurred.'
 }

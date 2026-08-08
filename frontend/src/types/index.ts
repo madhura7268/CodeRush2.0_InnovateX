@@ -89,6 +89,8 @@ export type SourceType =
   | 'News'
   | 'Website'
   | 'Report'
+  | 'Web Page'
+  | string
 
 export type VerificationStatus = 'Verified' | 'Unverified' | 'Flawed' | 'Flagged'
 
@@ -101,7 +103,7 @@ export interface SourceItem {
   relevance_score: number // 0 - 100 or 0 - 1
   evidence_score: number // 0 - 100 or 0 - 1
   verification_status: VerificationStatus
-  accessed_at: string
+  accessed_at?: string
   excerpt: string
   authors?: string[]
   publication_date?: string
@@ -111,9 +113,10 @@ export interface Citation {
   title: string
   url: string
   source_domain: string
-  accessed_at: string
+  accessed_at?: string
   excerpt: string | null
   relevance_score: number
+  confidence_score?: number
 }
 
 export interface RAGChunk {
@@ -338,6 +341,7 @@ export interface StructuredReport {
   sections: ReportSection[]
   sources: SourceItem[]
   citations: Citation[]
+  all_citations?: Citation[]
   overall_confidence: number
   limitations: string[]
   recommendations: string[]

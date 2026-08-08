@@ -1,8 +1,5 @@
 /**
- * AuthContext — Context Provider for Authentication State
- *
- * Provides authentication state (currentUser, loading, isAuthenticated)
- * and auth methods (login, register, logout, resetPassword).
+ * AuthContext — Context Provider for Real Authentication State
  */
 
 import React, { createContext, useContext, useEffect, useState } from 'react'
@@ -12,7 +9,7 @@ import {
   signUp as apiRegister,
   logout as apiLogout,
   resetPassword as apiResetPassword,
-  subscribeToAuthState,
+  fetchCurrentUser,
   getFirebaseErrorMessage,
 } from '@/services/auth'
 
@@ -33,11 +30,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState<boolean>(true)
 
   useEffect(() => {
-    const unsubscribe = subscribeToAuthState((user) => {
-      setCurrentUser(user)
-      setLoading(false)
+    let isMounted = true
+    fetchCurrentUser().then((user) => {
+      if (isMounted) {
+        setCurrentUser(user)
+        setLoading(false)
+      }
+    }).catch(() => {
+      if (isMounted) {
+        setCurrentUser(null)
+        setLoading(false)
+      }
     })
-    return () => unsubscribe()
+    return () => {
+      isMounted = false
+    }
   }, [])
 
   const login = async (email: string, pass: string) => {
@@ -63,7 +70,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       await apiLogout()
       setCurrentUser(null)
     } catch (err: any) {
-      throw new Error(getFirebaseErrorMessage(err))
+      setCurrentUser(null)
     }
   }
 

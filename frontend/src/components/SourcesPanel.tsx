@@ -11,9 +11,10 @@
  * - Source Type badges: #EFF6FF background with #2563EB text
  */
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Globe, ExternalLink, CheckCircle2, AlertTriangle, Filter } from 'lucide-react'
-import { MOCK_SOURCES } from '@/services/mockData'
+import { useAgent } from '@/contexts/AgentContext'
+import { api } from '@/services/api'
 import type { SourceItem, SourceType, VerificationStatus } from '@/types'
 import clsx from 'clsx'
 
@@ -52,8 +53,25 @@ function SourceTypeBadge({ type }: { type: SourceType }) {
   )
 }
 
-export default function SourcesPanel({ sources = MOCK_SOURCES }: SourcesPanelProps) {
+export default function SourcesPanel({ sources: propsSources }: SourcesPanelProps) {
+  const { state } = useAgent()
+  const { activeSessionId } = state
+  const [liveSources, setLiveSources] = useState<SourceItem[]>([])
   const [activeFilter, setActiveFilter] = useState<string>('All')
+
+  useEffect(() => {
+    if (!activeSessionId) return
+    api.sources
+      .getSources(activeSessionId)
+      .then((srcs: SourceItem[]) => {
+        if (srcs && srcs.length > 0) {
+          setLiveSources(srcs)
+        }
+      })
+      .catch(() => {})
+  }, [activeSessionId])
+
+  const sources = propsSources || (liveSources.length > 0 ? liveSources : [])
 
   const filteredSources = sources.filter((src) => {
     if (activeFilter === 'Verified') return src.verification_status === 'Verified'

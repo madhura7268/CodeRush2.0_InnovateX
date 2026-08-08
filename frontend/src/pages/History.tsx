@@ -9,15 +9,21 @@ import { useNavigate } from 'react-router-dom'
 import { History as HistoryIcon, Search, ExternalLink } from 'lucide-react'
 import { useAgent } from '@/contexts/AgentContext'
 import StatusBadge from '@/components/StatusBadge'
+import { formatHistoryDate } from '@/utils/formatters'
 import clsx from 'clsx'
 
 export default function HistoryPage() {
-  const { state } = useAgent()
+  const { state, dispatch } = useAgent()
   const { history } = state
   const navigate = useNavigate()
 
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedStatus, setSelectedStatus] = useState('ALL')
+
+  const handleSelectSession = (sessionId: string) => {
+    dispatch({ type: 'SET_ACTIVE_SESSION', payload: sessionId })
+    navigate(`/report?session_id=${sessionId}`)
+  }
 
   const filteredHistory = history.filter((item) => {
     const matchesSearch =
@@ -77,7 +83,7 @@ export default function HistoryPage() {
         {filteredHistory.map((item) => (
           <div
             key={item.session_id}
-            onClick={() => navigate('/report')}
+            onClick={() => handleSelectSession(item.session_id)}
             className="p-5 rounded-2xl bg-white border border-slate-200 hover:border-blue-300 hover:shadow-md transition-all cursor-pointer space-y-3 group"
           >
             <div className="flex items-start justify-between gap-4">
@@ -87,7 +93,7 @@ export default function HistoryPage() {
                     {item.session_id}
                   </span>
                   <StatusBadge status={item.status} />
-                  <span className="text-[11px] text-slate-500">{item.date}</span>
+                  <span className="text-[11px] text-slate-500">{formatHistoryDate(item.date)}</span>
                 </div>
                 <h3 className="text-base font-bold text-slate-900 group-hover:text-blue-600 transition-colors">
                   {item.question}
@@ -105,7 +111,7 @@ export default function HistoryPage() {
             <div className="flex flex-wrap items-center justify-between gap-4 pt-2 border-t border-slate-100 text-xs text-slate-500">
               <div className="flex items-center gap-4">
                 <span>
-                  Iterations: <strong className="text-slate-900 font-mono">{item.iterations}</strong>
+                  Iterations: <strong className="text-slate-900 font-mono">{item.iterations === 1 ? '1 iteration' : `${item.iterations} iterations`}</strong>
                 </span>
                 <span>
                   Sources: <strong className="text-blue-600 font-mono">{item.sources_count}</strong>

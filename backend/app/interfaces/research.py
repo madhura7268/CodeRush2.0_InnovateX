@@ -33,9 +33,9 @@ class IResearchPipeline(ABC):
     """Abstract interface for the end-to-end research pipeline."""
 
     @abstractmethod
-    async def get_history(self) -> list[ResearchHistoryItem]:
+    async def get_history(self, user_id: str | None = None) -> list[ResearchHistoryItem]:
         """
-        Retrieve history of all research sessions.
+        Retrieve history of research sessions, optionally filtered by user_id.
 
         Returns:
             list[ResearchHistoryItem]
@@ -43,12 +43,15 @@ class IResearchPipeline(ABC):
         ...
 
     @abstractmethod
-    async def start_research(self, request: ResearchRequest) -> str:
+    async def start_research(
+        self, request: ResearchRequest, user_id: str | None = None
+    ) -> str:
         """
-        Start a new research session.
+        Start a new research session associated with a user_id.
 
         Args:
             request: The research request containing the question and configuration.
+            user_id: The authenticated user's ID.
 
         Returns:
             session_id: A unique identifier for this research session.

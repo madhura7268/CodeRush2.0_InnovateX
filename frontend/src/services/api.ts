@@ -34,6 +34,8 @@ import {
   MOCK_SOURCES,
 } from './mockData'
 
+import { getStoredAuthToken } from './auth'
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
 export const USE_MOCK_DATA = import.meta.env.VITE_USE_MOCK_DATA === 'true'
 
@@ -46,15 +48,23 @@ const httpClient: AxiosInstance = axios.create({
 })
 
 httpClient.interceptors.request.use(
-  (config) => config,
+  (config) => {
+    const token = getStoredAuthToken()
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`
+    }
+    return config
+  },
   (error) => Promise.reject(error)
 )
 
 httpClient.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 403) {
-      console.warn('Governance policy restriction:', error.response.data)
+    if (error.response?.status === 401) {
+      console.warn('Authentication token expired or missing:', error.response.data)
+    } else if (error.response?.status === 403) {
+      console.warn('Governance or access policy restriction:', error.response.data)
     }
     return Promise.reject(error)
   }
@@ -109,11 +119,6 @@ const research = {
     return httpClient
       .post<{ success: boolean; session_id: string; websocket_url: string }>('/api/research', request)
       .then((r) => r.data)
-      .catch(() => ({
-        success: true,
-        session_id: MOCK_SESSION_STATUS.session_id,
-        websocket_url: `/api/research/ws/${MOCK_SESSION_STATUS.session_id}`,
-      }))
   },
 
   getStatus: async (sessionId: string): Promise<ResearchSessionStatus> => {
@@ -145,7 +150,7 @@ const research = {
     return httpClient
       .get<ResearchHistoryItem[]>('/api/research/history')
       .then((r) => r.data)
-      .catch(() => MOCK_RESEARCH_HISTORY)
+      .catch(() => [])
   },
 }
 

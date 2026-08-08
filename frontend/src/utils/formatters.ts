@@ -35,6 +35,25 @@ export function formatDateTime(isoString: string): string {
   })
 }
 
+/** Format a history item timestamp to human-friendly local time (e.g., "08 Aug 2026, 06:26 AM") */
+export function formatHistoryDate(dateStr: string): string {
+  if (!dateStr) return ''
+  let iso = dateStr
+  if (iso.includes(' ') && !iso.includes('T')) {
+    iso = iso.replace(' ', 'T') + 'Z'
+  } else if (!iso.endsWith('Z') && !iso.includes('+')) {
+    iso = iso + 'Z'
+  }
+  const d = new Date(iso)
+  if (isNaN(d.getTime())) return dateStr
+
+  const day = d.getDate().toString().padStart(2, '0')
+  const month = d.toLocaleString('en-US', { month: 'short' })
+  const year = d.getFullYear()
+  const time = d.toLocaleString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })
+  return `${day} ${month} ${year}, ${time}`
+}
+
 /** Truncate a long string with ellipsis */
 export function truncate(text: string, maxLength: number = 80): string {
   if (text.length <= maxLength) return text

@@ -20,6 +20,8 @@ Endpoints:
 from fastapi import APIRouter, Query, WebSocket, WebSocketDisconnect
 
 from app.core.dependencies import (
+    CurrentUserDep,
+    OptionalCurrentUserDep,
     ResearchPipelineDep,
     ResearchPipelineServiceDep,
     WebSocketManagerDep,
@@ -58,10 +60,12 @@ logger = get_logger(__name__)
 async def start_research(
     request: ResearchRequest,
     pipeline: ResearchPipelineDep,
+    current_user: OptionalCurrentUserDep,
 ) -> dict:
-    """Start an autonomous research session asynchronously."""
-    logger.info("STAGE: POST /api/research - Starting research session", question=request.question)
-    session_id = await pipeline.start_research(request)
+    """Start an autonomous research session asynchronously for the authenticated user."""
+    user_id = current_user.id if current_user else None
+    logger.info("STAGE: POST /api/research - Starting research session", question=request.question, user_id=user_id)
+    session_id = await pipeline.start_research(request, user_id=user_id)
     return {
         "success": True,
         "session_id": session_id,
@@ -106,9 +110,11 @@ async def research_pipeline_health(
 )
 async def get_research_history(
     pipeline: ResearchPipelineDep,
+    current_user: OptionalCurrentUserDep,
 ) -> list[ResearchHistoryItem]:
-    """Retrieve history of all research sessions."""
-    return await pipeline.get_history()
+    """Retrieve history of research sessions strictly for the authenticated user."""
+    user_id = current_user.id if current_user else None
+    return await pipeline.get_history(user_id=user_id)
 
 
 @router.post(
@@ -225,8 +231,18 @@ async def verify_source(
 async def get_session_status(
     session_id: str,
     pipeline: ResearchPipelineDep,
+    current_user: OptionalCurrentUserDep,
 ) -> ResearchSessionStatus:
     """Retrieve the current status, progress, and metadata for a research session."""
+    from app.research.pipeline import _sessions
+    from fastapi import HTTPException, status
+    if session_id in _sessions and current_user:
+        session_owner = _sessions[session_id].get("user_id")
+        if session_owner and session_owner != current_user.id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Access denied: You do not have permission to view this research session.",
+            )
     return await pipeline.get_session_status(session_id)
 
 
@@ -238,8 +254,18 @@ async def get_session_status(
 async def get_session_result(
     session_id: str,
     pipeline: ResearchPipelineDep,
+    current_user: OptionalCurrentUserDep,
 ) -> ResearchResult:
     """Retrieve the final findings and report reference for a completed session."""
+    from app.research.pipeline import _sessions
+    from fastapi import HTTPException, status
+    if session_id in _sessions and current_user:
+        session_owner = _sessions[session_id].get("user_id")
+        if session_owner and session_owner != current_user.id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Access denied: You do not have permission to view this research result.",
+            )
     return await pipeline.get_result(session_id)
 
 
@@ -251,8 +277,18 @@ async def get_session_result(
 async def cancel_session(
     session_id: str,
     pipeline: ResearchPipelineDep,
+    current_user: OptionalCurrentUserDep,
 ) -> dict:
     """Cancel a running research session."""
+    from app.research.pipeline import _sessions
+    from fastapi import HTTPException, status
+    if session_id in _sessions and current_user:
+        session_owner = _sessions[session_id].get("user_id")
+        if session_owner and session_owner != current_user.id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Access denied: You do not have permission to cancel this research session.",
+            )
     cancelled = await pipeline.cancel_session(session_id)
     return {"success": cancelled, "session_id": session_id}
 

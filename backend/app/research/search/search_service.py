@@ -82,8 +82,11 @@ class TavilySearchProvider(ISearchProvider):
         return results
 
 
-class MockSearchProvider(ISearchProvider):
-    """Fallback search provider generating structured mock search results."""
+class RealWebSearchProvider(ISearchProvider):
+    """
+    Live web search provider using DuckDuckGo HTML & Wikipedia APIs.
+    Returns authentic web results with real titles, URLs, domains, and extracted snippets.
+    """
 
     async def search(
         self,
@@ -93,31 +96,92 @@ class MockSearchProvider(ISearchProvider):
         include_domains: list[str] | None = None,
         exclude_domains: list[str] | None = None,
     ) -> list[SearchResult]:
-        logger.info("Using MockSearchProvider", query=query)
-        mock_domains = ["arxiv.org", "nature.com", "sciencedirect.com", "mit.edu", "stanford.edu"]
+        import re
+        import html
+        from urllib.parse import quote, unquote, urlparse
+
+        logger.info("Executing RealWebSearchProvider search", query=query)
         results: list[SearchResult] = []
-        for i in range(1, min(max_results, 5) + 1):
-            domain = mock_domains[(i - 1) % len(mock_domains)]
-            results.append(
-                SearchResult(
-                    title=f"Research Insights #{i}: {query.capitalize()}",
-                    url=f"https://{domain}/article/research-{i}",
-                    content=f"Comprehensive findings and analysis regarding {query}. "
-                            f"Section {i} explores empirical evidence, methodology, and key discoveries.",
-                    relevance_score=round(0.95 - (i * 0.05), 2),
-                    source_domain=domain,
-                    published_date="2026-01-15",
-                )
-            )
+        seen_urls: set[str] = set()
+
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        }
+
+        async with httpx.AsyncClient(headers=headers, follow_redirects=True, timeout=8.0) as client:
+            # 1. DuckDuckGo HTML Search
+            try:
+                resp = await client.post("https://html.duckduckgo.com/html/", data={"q": query})
+                raw_html = resp.text
+                link_matches = re.findall(r'<a[^>]+class="result__a"[^>]+href="([^"]+)"[^>]*>(.*?)</a>', raw_html)
+                snippet_matches = re.findall(r'<a[^>]+class="result__snippet"[^>]*>(.*?)</a>', raw_html)
+
+                for i, (raw_url, title_raw) in enumerate(link_matches):
+                    if len(results) >= max_results:
+                        break
+                    title = html.unescape(re.sub(r'<[^<]+?>', '', title_raw)).strip()
+                    if 'uddg=' in raw_url:
+                        m = re.search(r'uddg=([^&]+)', raw_url)
+                        real_url = unquote(m.group(1)) if m else raw_url
+                    else:
+                        real_url = raw_url
+
+                    if real_url in seen_urls:
+                        continue
+
+                    snippet = ""
+                    if i < len(snippet_matches):
+                        snippet = html.unescape(re.sub(r'<[^<]+?>', '', snippet_matches[i])).strip()
+
+                    domain = urlparse(real_url).netloc
+                    if real_url.startswith("http") and domain and "duckduckgo" not in domain:
+                        seen_urls.add(real_url)
+                        results.append(
+                            SearchResult(
+                                title=title,
+                                url=real_url,
+                                content=snippet or f"Extracted web evidence for research query: {query}",
+                                relevance_score=round(0.95 - (len(results) * 0.04), 2),
+                                source_domain=domain,
+                            )
+                        )
+            except Exception as e:
+                logger.warning("DuckDuckGo search failed in RealWebSearchProvider", error=str(e))
+
+            # 2. Wikipedia Search API (Augmentation / Fallback)
+            if len(results) < max_results:
+                try:
+                    wiki_url = f"https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch={quote(query)}&utf8=&format=json"
+                    resp = await client.get(wiki_url)
+                    data = resp.json()
+                    for item in data.get("query", {}).get("search", []):
+                        if len(results) >= max_results:
+                            break
+                        title = item["title"]
+                        snippet = html.unescape(re.sub(r'<[^<]+?>', '', item["snippet"])).strip()
+                        url = f"https://en.wikipedia.org/wiki/{quote(title.replace(' ', '_'))}"
+                        if url in seen_urls:
+                            continue
+                        seen_urls.add(url)
+                        results.append(
+                            SearchResult(
+                                title=title,
+                                url=url,
+                                content=snippet,
+                                relevance_score=0.90,
+                                source_domain="en.wikipedia.org",
+                            )
+                        )
+                except Exception as e:
+                    logger.warning("Wikipedia API search failed in RealWebSearchProvider", error=str(e))
+
         return results
 
 
 class SearchService:
     """
     Search Service Manager.
-
-    Uses TavilySearchProvider if API key exists, gracefully falling back
-    to MockSearchProvider on configuration or request errors.
+    Uses TavilySearchProvider if API key exists, falling back to RealWebSearchProvider.
     """
 
     def __init__(self, settings: Settings, provider: ISearchProvider | None = None) -> None:
@@ -127,8 +191,8 @@ class SearchService:
         elif settings.TAVILY_API_KEY:
             self.provider = TavilySearchProvider(api_key=settings.TAVILY_API_KEY)
         else:
-            self.provider = MockSearchProvider()
-        self.fallback_provider = MockSearchProvider()
+            self.provider = RealWebSearchProvider()
+        self.fallback_provider = RealWebSearchProvider()
 
     async def search(
         self,
@@ -148,6 +212,14 @@ class SearchService:
                 include_domains=include_domains,
                 exclude_domains=exclude_domains,
             )
+            if not results:
+                results = await self.fallback_provider.search(
+                    query=query,
+                    max_results=max_results,
+                    search_depth=search_depth,
+                    include_domains=include_domains,
+                    exclude_domains=exclude_domains,
+                )
             logger.info("Search successful", results_count=len(results))
             return results
         except Exception as e:  # noqa: BLE001

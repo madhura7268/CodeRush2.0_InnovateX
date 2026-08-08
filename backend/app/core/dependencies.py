@@ -23,10 +23,16 @@ from __future__ import annotations
 from functools import lru_cache
 from typing import Annotated
 
-from fastapi import Depends
+from fastapi import Depends, HTTPException, status, Header
+from fastapi.security import OAuth2PasswordBearer
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.browser.browser_tool import BrowserTool
 from app.config.settings import Settings, get_settings
+from app.core.database import get_db
+from app.core.security import decode_access_token
+from app.models.user import User
 from app.evaluation.evaluation import EvaluationService
 from app.governance.governance import GovernanceEngine
 from app.interfaces.browser import IBrowserTool
@@ -46,9 +52,67 @@ from app.research.services.research_pipeline_service import ResearchPipelineServ
 from app.websocket.manager import WebSocketManager
 
 # ---------------------------------------------------------------------------
-# Settings dependency (shared singleton)
+# Settings & Database Dependencies
 # ---------------------------------------------------------------------------
 SettingsDep = Annotated[Settings, Depends(get_settings)]
+DatabaseDep = Annotated[AsyncSession, Depends(get_db)]
+
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login", auto_error=False)
+
+
+async def get_current_user(
+    db: DatabaseDep,
+    token: str | None = Depends(oauth2_scheme),
+    authorization: str | None = Header(default=None),
+) -> User:
+    """Validate JWT token and return the authenticated User entity from database."""
+    actual_token = token
+    if not actual_token and authorization and authorization.startswith("Bearer "):
+        actual_token = authorization.split(" ")[1]
+
+    if not actual_token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication token required",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    payload = decode_access_token(actual_token)
+    if not payload or "sub" not in payload:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired authentication token",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    user_id = payload["sub"]
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+
+    if not user or not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User account not found or deactivated",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    return user
+
+
+async def get_optional_current_user(
+    db: DatabaseDep,
+    token: str | None = Depends(oauth2_scheme),
+    authorization: str | None = Header(default=None),
+) -> User | None:
+    """Return authenticated User if token is present, else None."""
+    try:
+        return await get_current_user(db, token, authorization)
+    except HTTPException:
+        return None
+
+
+CurrentUserDep = Annotated[User, Depends(get_current_user)]
+OptionalCurrentUserDep = Annotated[User | None, Depends(get_optional_current_user)]
 
 
 # ---------------------------------------------------------------------------

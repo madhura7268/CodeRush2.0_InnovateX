@@ -10,9 +10,9 @@
  */
 
 import { useState } from 'react'
-import { Copy, Download, Check, Sparkles, Share2, Layers } from 'lucide-react'
+import { Copy, Download, Check, Sparkles, Share2, Layers, Globe, ExternalLink } from 'lucide-react'
 import { api } from '@/services/api'
-import type { StructuredReport } from '@/types'
+import type { Citation, StructuredReport } from '@/types'
 
 interface ReportViewerProps {
   report?: StructuredReport
@@ -165,6 +165,49 @@ export default function ReportViewer({ report }: ReportViewerProps) {
                 )}
               </div>
             ))}
+          </div>
+        )}
+
+        {/* Sources & Evidence Section */}
+        {((report.citations && report.citations.length > 0) || (report.all_citations && report.all_citations.length > 0)) && (
+          <div className="space-y-3 pt-4 border-t border-slate-200">
+            <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
+              <Globe size={15} className="text-blue-600" /> Sources & Evidence ({(report.citations || report.all_citations || []).length})
+            </h3>
+            <div className="grid grid-cols-1 gap-3">
+              {(report.citations || report.all_citations || []).map((citation: Citation, cIdx: number) => (
+                <div
+                  key={cIdx}
+                  className="p-4 rounded-xl bg-slate-50 border border-slate-200 hover:border-slate-300 transition-all space-y-2"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-50 text-blue-600 border border-blue-200">
+                          Source #{cIdx + 1}
+                        </span>
+                        <span className="text-[11px] font-mono text-slate-500">{citation.source_domain}</span>
+                      </div>
+                      <h4 className="text-sm font-bold text-slate-900">{citation.title}</h4>
+                    </div>
+                    <a
+                      href={citation.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="px-3 py-1.5 rounded-lg bg-white text-blue-600 hover:bg-blue-50 border border-blue-200 transition-all flex items-center gap-1 text-xs font-semibold flex-shrink-0"
+                    >
+                      <span>Open Source</span>
+                      <ExternalLink size={13} />
+                    </a>
+                  </div>
+                  {citation.excerpt && (
+                    <p className="text-xs text-slate-700 italic bg-white p-3 rounded-lg border border-slate-200 leading-relaxed">
+                      "{citation.excerpt}"
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
